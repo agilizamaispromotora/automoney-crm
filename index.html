@@ -635,7 +635,7 @@ function showPage(id) {
 }
 
 // ---------- MODAL ----------
-function openModal(html, size) {
+function openModal(html, size, setupFn) {
   var d = document.createElement('div');
   d.className = 'modal-bg';
   d.id = 'modal-bg';
@@ -643,6 +643,7 @@ function openModal(html, size) {
   d.addEventListener('click', function(e) { if (e.target === d) closeModal(); });
   document.getElementById('modal-wrap').innerHTML = '';
   document.getElementById('modal-wrap').appendChild(d);
+  if (setupFn) setTimeout(setupFn, 50);
 }
 function closeModal() { document.getElementById('modal-wrap').innerHTML = ''; }
 function mHead(t) {
@@ -778,7 +779,19 @@ function openVehModal(id) {
   h += fsel('vstatus','Status',d.status,['Disponivel','Em Preparacao','Anunciado','Reservado','Vendido']);
   h += finp('ventry','Valor Entrada R$',d.entryValue,'','number') + finp('vsale','Valor Venda R$',d.saleValue,'','number');
   h += '</div><div class="modal-foot"><button class="btn btns" onclick="closeModal()">Cancelar</button><button class="btn btnp" onclick="saveVeh(' + (id||0) + ')">Salvar</button></div></div>';
-  openModal(h, 'modal-lg');
+  var vBrand = d.brand || '';
+  var vModel = d.model || '';
+  openModal(h, 'modal-lg', function() {
+    var bSel = document.getElementById('vbrand');
+    if (bSel && vBrand) {
+      bSel.value = vBrand;
+      onBrandChange(vBrand);
+      setTimeout(function() {
+        var mSel = document.getElementById('vmodel-sel');
+        if (mSel && vModel) mSel.value = vModel;
+      }, 150);
+    }
+  });
 }
 function saveVeh(id) {
   var brand = gv('vbrand'), model = gv('vmodel-sel') || gv('vmodel'), plate = gv('vplate');
