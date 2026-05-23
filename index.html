@@ -236,13 +236,13 @@ input[type=checkbox]{width:16px;height:16px;accent-color:#22c55e;}
 
 <script>
 // ============================================================
-// SUPABASE CONFIG — substitua pelos seus valores
+// SUPABASE CONFIG - substitua pelos seus valores
 // ============================================================
 var SUPA_URL = 'https://zpmjhtanbxegtjybyvtn.supabase.co';   // ex: https://xyzabc.supabase.co
 var SUPA_KEY = 'sb_publishable_-3gsXaOaEA4x_Da4tpO-sw_8zZBUX5u';   // anon public key
 
 // ============================================================
-// SUPABASE API — camada de acesso ao banco
+// SUPABASE API - camada de acesso ao banco
 // ============================================================
 function supaHeaders() {
   return {
@@ -298,7 +298,7 @@ function supaConfigured() {
 // ============================================================
 function loadAllData(callback) {
   if (!supaConfigured()) {
-    // Modo offline — usa dados locais do DB
+    // Modo offline - usa dados locais do DB
     callback();
     return;
   }
@@ -337,7 +337,7 @@ function showLoading(show) {
   if (el) el.style.display = show ? 'flex' : 'none';
 }
 
-// Mappers — converte nomes do banco (snake_case) para o JS (camelCase)
+// Mappers - converte nomes do banco (snake_case) para o JS (camelCase)
 function mapVehicle(r) { return { id:r.id, brand:r.brand, model:r.model, year:r.year, plate:r.plate, color:r.color, chassis:r.chassis, renavam:r.renavam, owner:r.owner, ownerName:r.owner_name, entryValue:r.entry_value, saleValue:r.sale_value, expenses:r.expenses, status:r.status, entryType:r.entry_type, mileage:r.mileage }; }
 function mapClient(r)  { return { id:r.id, name:r.name, cpf:r.cpf, phone:r.phone, email:r.email, address:r.address, city:r.city, type:r.type, birthdate:r.birthdate }; }
 function mapSale(r)    { return { id:r.id, vehicleId:r.vehicle_id, clientId:r.client_id, seller:r.seller, saleDate:r.sale_date, saleValue:r.sale_value, payMethod:r.pay_method, bankName:r.bank_name, commission:r.commission, transferType:r.transfer_type, desp:r.despachante, status:r.status }; }
@@ -364,7 +364,7 @@ var BRANDS = {
   'Caoa Chery': ['Arrizo 6','Tiggo 2','Tiggo 5x','Tiggo 7','Tiggo 7 Pro','Tiggo 8','Tiggo 8 Pro'],
   'Chevrolet': ['Agile','Blazer','Camaro','Captiva','Cobalt','Corvette','Cruze','Equinox','Kadett','Montana','Monza','Onix','Onix Plus','Prisma','S10','Silverado','Spin','Tracker','Trailblazer','Trax'],
   'Chrysler': ['300','Grand Caravan','Pacifica','Town & Country'],
-  'Citroën': ['Aircross','Berlingo','C3','C4','C4 Cactus','C4 Lounge','C5','DS3','DS4','DS5','Jumpy','Xsara'],
+  'Citroen': ['Aircross','Berlingo','C3','C4','C4 Cactus','C4 Lounge','C5','DS3','DS4','DS5','Jumpy','Xsara'],
   'Dodge': ['Challenger','Charger','Durango','Journey','Ram'],
   'Fiat': ['Argo','Bravo','Cronos','Doblò','Fastback','Fiorino','Linea','Marea','Mobi','Palio','Pulse','Punto','Siena','Stilo','Strada','Toro','Tipo','Uno'],
   'Ford': ['Bronco','EcoSport','Edge','Escape','Explorer','F-150','F-250','Fiesta','Focus','Fusion','Galaxy','Ka','Ka+','Maverick','Mondeo','Mustang','Ranger','Territory','Transit'],
@@ -769,7 +769,6 @@ function openVehModal(id) {
     + (d.brand ? ('<option value="">Selecione...</option>' + modelOpts) : '<option value="">Selecione a marca primeiro</option>')
     + '</select></div>';
   // Set correct values after modal renders
-  h += '<script>setTimeout(function(){ var b=document.getElementById("vbrand"); if(b && "'+( d.brand||'')+'"){ b.value="'+(d.brand||'')+'"; onBrandChange("'+(d.brand||'')+'"); setTimeout(function(){ var m=document.getElementById("vmodel-sel"); if(m) m.value="'+(d.model||'')+'"; },100); } },50);<\/script>';
   h += '<div class="fg"><label>Ano <span class="req">*</span></label><input type="text" inputmode="numeric" id="vyear" value="'+(d.year||'')+'"/></div>' + finp('vplate','Placa',d.plate,true);
   h += finp('vcolor','Cor',d.color) + '<div class="fg"><label>Km</label><input type="text" inputmode="numeric" id="vmil" value="'+(d.mileage||'')+'"/></div>';
   h += finp('vchassi','Chassi',d.chassis) + finp('vrenavam','RENAVAM',d.renavam);
@@ -1111,7 +1110,7 @@ function rEmployees() {
       if (e.helpCost > 0) h += '<div class="estat"><div class="elbl">Aj. Custo</div><div class="eval">' + fmt(e.helpCost) + '</div></div>';
       if (e.sales > 0) h += '<div class="estat" style="background:#dbeafe"><div class="elbl">Vendas</div><div class="eval" style="color:#1d4ed8">' + e.sales + '</div></div>';
       if (tot > 0) h += '<div class="estat" style="background:#f0fdf4"><div class="elbl">Total Pago</div><div class="eval" style="color:#22c55e">' + fmt(tot) + '</div></div>';
-      h += '</div><div style="margin-top:10px;font-size:12px;color:#22c55e;text-align:right">Ver extrato &rarr;</div>';
+      h += '</div><div style="margin-top:10px;font-size:12px;color:#22c55e;text-align:right">Ver extrato -></div>';
       h += '</div>';
     });
     h += '</div>';
@@ -1697,7 +1696,6 @@ function openFluxo(saleId) {
 
   h += '<div class="modal-foot"><button class="btn btns" onclick="closeModal()">Fechar</button></div>';
   h += '</div>';
-  h += '<script>window._currentFluxoId=\''+saleId+'\';<\/script>';
 
   openModal(h, 'modal-lg');
 }
@@ -1805,14 +1803,15 @@ function openTransf(saleId) {
   h += 'Salvar Status</button></div></div>';
 
   // Init globals
-  h += '<script>window._trResp=\''+curResp+'\';window._trStatus=\''+curStatus+'\';<\/script>';
 
   openModal(h, 'modal-md');
 }
 
 function saveTransf(saleId) {
-  var resp   = window._trResp   || 'Cliente';
-  var status = window._trStatus || 'Pendente';
+  var respEl = document.querySelector('input[name=tr-resp]:checked');
+  var statusEl = document.querySelector('input[name=tr-status]:checked');
+  var resp   = respEl ? respEl.value : 'Cliente';
+  var status = statusEl ? statusEl.value : 'Pendente';
   var despStatus = status==='Concluida' ? 'Concluido' : status==='Em andamento' ? 'Em andamento' : 'Aguardando';
 
   DB.sales = DB.sales.map(function(s){
