@@ -749,10 +749,10 @@ function rVehicles() {
   h += mkTable(['Placa','Veiculo','Cor','Proprietario','Entrada','Valor Venda','Status'], list.map(function(v) {
     return { cells: ['<strong>'+v.plate+'</strong>', v.brand+' '+v.model+' '+v.year, v.color, v.ownerName, bk(v.entryType,'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(v.saleValue)+'</span>', vbk(v.status)], data: v };
   }), function(v) {
-    var vid = JSON.stringify(v.id);
-    return '<button class="btn btng" onclick="openChecklist('+vid+')" title="Checklist">' + svgIcon('agenda',15) + '</button>' +
-      '<button class="btn btng" onclick="openVehModal('+vid+')" title="Editar">' + svgIcon('leads',15) + '</button>' +
-      (isG() ? '<button class="btn btnd" onclick="delVeh('+vid+')">' + svgIcon('financial',14,'#dc2626') + '</button>' : '');
+    var vid = v.id;
+    return '<button class="btn btng" onclick="openChecklist(&quot;'+vid+'&quot;)" title="Checklist">' + svgIcon('agenda',15) + '</button>' +
+      '<button class="btn btng" onclick="openVehModal(&quot;'+vid+'&quot;)" title="Editar">' + svgIcon('leads',15) + '</button>' +
+      (isG() ? '<button class="btn btnd" onclick="delVeh(&quot;'+vid+'&quot;)">' + svgIcon('financial',14,'#dc2626') + '</button>' : '');
   });
   h += '</div>';
   document.getElementById('p-vehicles').innerHTML = h;
@@ -892,7 +892,7 @@ function rLeads() {
     return { cells: [l.date,'<strong>'+l.name+'</strong>',l.phone,l.interest,bk(l.portal,'bb'),lbk(l.status),l.notes], data: l };
   }), function(l) {
     var opts = LSTS.map(function(s) { return '<option value="'+s+'"'+(l.status===s?' selected':'')+'>'+s+'</option>'; }).join('');
-    return '<select onchange="updLead(\'' + l.id + '\',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
+    return '<select onchange="updLead(&quot;'+l.id+'&quot;,this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
   });
   h += '</div>';
   document.getElementById('p-leads').innerHTML = h;
@@ -1162,7 +1162,7 @@ function rDesp() {
     }), function(s) {
       var opts = ['Aguardando','Em andamento','ATPV Enviado','Concluido'].map(function(o) { return '<option value="'+o+'"'+(s.desp===o?' selected':'')+'>'+o+'</option>'; }).join('');
       return '<button class="btn btnp" style="font-size:12px;padding:7px 14px;background:#1e293b;margin-right:6px" onclick="openFluxo('+JSON.stringify(s.id)+')">📋 Ver Fluxo</button>'
-        + '<select onchange="updDesp(\'' + s.id + '\',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
+        + '<select onchange="updDesp(&quot;'+s.id+'&quot;,this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
     });
   }
   h += '</div>';
