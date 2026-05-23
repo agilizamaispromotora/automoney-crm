@@ -767,6 +767,8 @@ function openVehModal(id) {
   h += '<div class="fg"><label>Modelo <span class="req">*</span></label><select id="vmodel-sel">'
     + (d.brand ? ('<option value="">Selecione...</option>' + modelOpts) : '<option value="">Selecione a marca primeiro</option>')
     + '</select></div>';
+  // Set correct values after modal renders
+  h += '<script>setTimeout(function(){ var b=document.getElementById("vbrand"); if(b && "'+( d.brand||'')+'"){ b.value="'+(d.brand||'')+'"; onBrandChange("'+(d.brand||'')+'"); setTimeout(function(){ var m=document.getElementById("vmodel-sel"); if(m) m.value="'+(d.model||'')+'"; },100); } },50);<\/script>';
   h += finp('vyear','Ano',d.year,true,'number') + finp('vplate','Placa',d.plate,true);
   h += finp('vcolor','Cor',d.color) + finp('vmil','Km',d.mileage,'','number');
   h += finp('vchassi','Chassi',d.chassis) + finp('vrenavam','RENAVAM',d.renavam);
@@ -781,7 +783,7 @@ function openVehModal(id) {
 function saveVeh(id) {
   var brand = gv('vbrand'), model = gv('vmodel-sel') || gv('vmodel'), plate = gv('vplate');
   if (!brand) { alert('Selecione a marca.'); return; }
-  if (!model) { alert('Selecione o modelo.'); return; }
+  if (!model) { model = brand; } // fallback if model not selected
   if (!brand || !model || !plate) { alert('Preencha os campos obrigatorios.'); return; }
   var obj = { brand:brand, model:model||gv('vmodel'), year:Number(gv('vyear')), plate:plate.toUpperCase(), color:gv('vcolor'), chassis:gv('vchassi'), renavam:gv('vrenavam'), owner:gv('vowner'), ownerName:gv('vowner2'), entryValue:Number(gv('ventry')), saleValue:Number(gv('vsale')), entryType:gv('vetype'), status:gv('vstatus'), mileage:Number(gv('vmil')), expenses: id ? (DB.vehicles.find(function(v){return v.id==id;})||{}).expenses||0 : 0 };
   if (supaConfigured()) {
@@ -1884,7 +1886,7 @@ function openVistoria(saleId) {
     + 'Nome: ' + cNome + '\n'
     + 'Telefone: ' + cTel + '\n';
 
-  h += '<textarea id="vis-text" style="width:100%;height:260px;padding:14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:monospace;line-height:1.7;resize:none">' + texto + '</textarea>';
+  h += '<textarea id="vis-text" style="width:100%;height:260px;padding:14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:monospace;line-height:1.7;resize:none">' + texto + '<\/textarea>';
 
   h += '<div class="modal-foot">';
   h += '<button class="btn btns" onclick="closeModal()">Fechar</button>';
@@ -1943,7 +1945,7 @@ function openAtpv(saleId) {
   var h = mHead('ATPV - ' + vPlaca + ' | ' + vNome);
   h += '<div class="modal-body">';
   h += '<p style="font-size:13px;color:#64748b;margin-bottom:12px">Confira os dados, copie e envie ao despachante. Depois marque como <strong>ATPV Enviado</strong>.</p>';
-  h += '<textarea id="atpv-text" style="width:100%;height:280px;padding:14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:monospace;line-height:1.7;resize:none">' + texto + '</textarea>';
+  h += '<textarea id="atpv-text" style="width:100%;height:280px;padding:14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:monospace;line-height:1.7;resize:none">' + texto + '<\/textarea>';
   h += '<div class="modal-foot">';
   h += '<button class="btn btns" onclick="closeModal()">Fechar</button>';
   h += '<button class="btn btns" onclick="copyAtpv()" id="btn-copy">Copiar Texto</button>';
