@@ -352,6 +352,70 @@ function mapSupplier(r){ return { id:r.id, name:r.name, cat:r.category, cnpj:r.c
 
 var CUR = { user: '', role: '', page: 'dashboard', sideOpen: true };
 
+
+// ============================================================
+// MARCAS E MODELOS
+// ============================================================
+var BRANDS = {
+  'Acura': ['ILX','MDX','RDX','TLX'],
+  'Audi': ['A1','A3','A4','A5','A6','A7','A8','Q2','Q3','Q5','Q7','Q8','RS3','RS4','RS5','RS6','RS7','S3','S4','S5','TT'],
+  'BMW': ['116i','118i','120i','125i','130i','M135i','218i','220i','225i','230i','316i','318i','320i','325i','328i','330i','335i','340i','M340i','418i','420i','425i','430i','520i','525i','528i','530i','535i','540i','M550i','620i','630i','640i','730i','735i','740i','750i','840i','M2','M3','M4','M5','M6','M8','X1','X2','X3','X4','X5','X6','X7','Z4'],
+  'BYD': ['Atto 3','Dolphin','Han','King','Seal','Song Plus','Tan'],
+  'Caoa Chery': ['Arrizo 6','Tiggo 2','Tiggo 5x','Tiggo 7','Tiggo 7 Pro','Tiggo 8','Tiggo 8 Pro'],
+  'Chevrolet': ['Agile','Blazer','Camaro','Captiva','Cobalt','Corvette','Cruze','Equinox','Kadett','Montana','Monza','Onix','Onix Plus','Prisma','S10','Silverado','Spin','Tracker','Trailblazer','Trax'],
+  'Chrysler': ['300','Grand Caravan','Pacifica','Town & Country'],
+  'Citroën': ['Aircross','Berlingo','C3','C4','C4 Cactus','C4 Lounge','C5','DS3','DS4','DS5','Jumpy','Xsara'],
+  'Dodge': ['Challenger','Charger','Durango','Journey','Ram'],
+  'Fiat': ['Argo','Bravo','Cronos','Doblò','Fastback','Fiorino','Linea','Marea','Mobi','Palio','Pulse','Punto','Siena','Stilo','Strada','Toro','Tipo','Uno'],
+  'Ford': ['Bronco','EcoSport','Edge','Escape','Explorer','F-150','F-250','Fiesta','Focus','Fusion','Galaxy','Ka','Ka+','Maverick','Mondeo','Mustang','Ranger','Territory','Transit'],
+  'GWM': ['Haval H6','Haval H6 GT','Ora 03','Poer','Tank 300'],
+  'Honda': ['Accord','City','Civic','CR-V','Fit','HR-V','Jazz','Pilot','WR-V'],
+  'Hyundai': ['Azera','Creta','Elantra','HB20','HB20S','HB20X','i30','i30','IX35','Sonata','Tucson','Veloster'],
+  'Infiniti': ['FX35','G35','Q50','Q60','QX50','QX60','QX80'],
+  'Jaguar': ['E-Pace','F-Pace','F-Type','I-Pace','XE','XF','XJ'],
+  'Jeep': ['Cherokee','Commander','Compass','Grand Cherokee','Meridian','Renegade','Wrangler'],
+  'Kia': ['Cadenza','Carnival','Cerato','EV6','Optima','Picanto','Seltos','Sorento','Soul','Sportage','Stinger','Telluride'],
+  'Land Rover': ['Defender','Discovery','Discovery Sport','Evoque','Freelander','Range Rover','Range Rover Sport','Range Rover Velar'],
+  'Lexus': ['ES','GS','IS','LC','LS','LX','NX','RX','UX'],
+  'Maserati': ['Ghibli','GranTurismo','Grecale','Levante','Quattroporte'],
+  'Mercedes-Benz': ['A 180','A 200','A 250','B 180','B 200','C 180','C 200','C 250','C 300','C 43','C 63','CLA 200','CLA 250','CLA 45','CLS 400','E 200','E 250','E 300','E 350','E 400','E 43','E 63','EQA','EQB','EQC','GLA 200','GLA 250','GLB 200','GLC 200','GLC 250','GLC 300','GLE 400','GLS 400','ML 350','S 400','S 450','S 500','SL 400','SLC 300','Sprinter','Vito'],
+  'Mini': ['Clubman','Convertible','Cooper','Cooper S','Countryman','Paceman'],
+  'Mitsubishi': ['ASX','Eclipse Cross','L200','Lancer','Outlander','Pajero','Pajero Sport'],
+  'Nissan': ['Frontier','GT-R','Kicks','Leaf','March','Murano','Pathfinder','Sentra','Tiida','Versa','X-Trail'],
+  'Peugeot': ['2008','207','208','3008','307','308','408','5008','508','Expert','Partner'],
+  'Porsche': ['718','911','Cayenne','Cayenne Coupe','Macan','Panamera','Taycan'],
+  'RAM': ['1500','2500','3500','Rampage'],
+  'Renault': ['Captur','Clio','Duster','Fluence','Kardian','Kwid','Logan','Master','Megane','Oroch','Sandero','Scenic','Symbol','Zoe'],
+  'Subaru': ['Forester','Impreza','Legacy','Outback','WRX','XV'],
+  'Suzuki': ['Baleno','Grand Vitara','Jimny','S-Cross','Swift','Vitara'],
+  'Toyota': ['Camry','Corolla','Corolla Cross','Etios','Fielder','Fortuner','Hilux','Land Cruiser','Prius','RAV4','Rush','SW4','Yaris'],
+  'Volkswagen': ['Amarok','Bora','Fox','Fusca','Gol','Golf','Jetta','Kombi','Nivus','Parati','Passat','Polo','Saveiro','T-Cross','T-ROC','Taos','Tiguan','Touareg','Touran','Up','Virtus','Voyage'],
+  'Volvo': ['C40','EX40','S40','S60','S80','S90','V40','V60','V90','XC40','XC60','XC90'],
+  'Outras': ['Outro']
+};
+
+function getBrandOpts(selected) {
+  return Object.keys(BRANDS).map(function(b) {
+    return '<option value="'+b+'"'+(b===selected?' selected':'')+'>'+b+'</option>';
+  }).join('');
+}
+
+function getModelOpts(brand, selected) {
+  var models = BRANDS[brand] || [];
+  return models.map(function(m) {
+    return '<option value="'+m+'"'+(m===selected?' selected':'')+'>'+m+'</option>';
+  }).join('');
+}
+
+function onBrandChange(val) {
+  var modelSel = document.getElementById('vmodel-sel');
+  if (modelSel) {
+    modelSel.innerHTML = getModelOpts(val, '');
+    modelSel.disabled = false;
+  }
+}
+
+
 var USERS = {
   'ANDERSON': { role: 'gestor', pass: '1234' },
   'ANA': { role: 'gestor', pass: '1234' },
@@ -685,18 +749,22 @@ function rVehicles() {
   h += mkTable(['Placa','Veiculo','Cor','Proprietario','Entrada','Valor Venda','Status'], list.map(function(v) {
     return { cells: ['<strong>'+v.plate+'</strong>', v.brand+' '+v.model+' '+v.year, v.color, v.ownerName, bk(v.entryType,'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(v.saleValue)+'</span>', vbk(v.status)], data: v };
   }), function(v) {
-    return '<button class="btn btng" onclick="openChecklist(' + v.id + ')" title="Checklist">' + svgIcon('agenda',15) + '</button>' +
-      '<button class="btn btng" onclick="openVehModal(' + v.id + ')" title="Editar">' + svgIcon('leads',15) + '</button>' +
-      (isG() ? '<button class="btn btnd" onclick="delVeh(' + v.id + ')">' + svgIcon('financial',14,'#dc2626') + '</button>' : '');
+    var vid = JSON.stringify(v.id);
+    return '<button class="btn btng" onclick="openChecklist('+vid+')" title="Checklist">' + svgIcon('agenda',15) + '</button>' +
+      '<button class="btn btng" onclick="openVehModal('+vid+')" title="Editar">' + svgIcon('leads',15) + '</button>' +
+      (isG() ? '<button class="btn btnd" onclick="delVeh('+vid+')">' + svgIcon('financial',14,'#dc2626') + '</button>' : '');
   });
   h += '</div>';
   document.getElementById('p-vehicles').innerHTML = h;
 }
 function openVehModal(id) {
-  var v = id ? DB.vehicles.find(function(x) { return x.id === id; }) : null;
+  var v = id ? DB.vehicles.find(function(x) { return x.id == id; }) : null;
   var d = v || {brand:'',model:'',year:'',plate:'',color:'',chassis:'',renavam:'',owner:'Loja',ownerName:'Auto Money',entryValue:'',saleValue:'',entryType:'Compra',status:'Disponivel',mileage:''};
   var h = mHead(id ? 'Editar Veiculo' : 'Cadastrar Veiculo') + '<div class="modal-body"><div class="fgrid">';
-  h += finp('vbrand','Marca',d.brand,true) + finp('vmodel','Modelo',d.model,true);
+  var brandOpts = getBrandOpts(d.brand||'');
+  var modelOpts = d.brand ? getModelOpts(d.brand, d.model||'') : '';
+  h += '<div class="fg"><label>Marca <span class="req">*</span></label><select id="vbrand" onchange="onBrandChange(this.value)"><option value="">Selecione a marca...</option>'+brandOpts+'</select></div>';
+  h += '<div class="fg"><label>Modelo <span class="req">*</span></label><select id="vmodel-sel" '+(d.brand?'':'disabled')+' style="'+(d.brand?'':'opacity:.5')+'">'+(d.brand?'<option value="">Selecione...</option>'+modelOpts:'<option value="">Selecione a marca primeiro</option>')+'</select></div>';
   h += finp('vyear','Ano',d.year,true,'number') + finp('vplate','Placa',d.plate,true);
   h += finp('vcolor','Cor',d.color) + finp('vmil','Km',d.mileage,'','number');
   h += finp('vchassi','Chassi',d.chassis) + finp('vrenavam','RENAVAM',d.renavam);
@@ -709,27 +777,27 @@ function openVehModal(id) {
   openModal(h, 'modal-lg');
 }
 function saveVeh(id) {
-  var brand = gv('vbrand'), model = gv('vmodel'), plate = gv('vplate');
+  var brand = gv('vbrand'), model = gv('vmodel-sel'), plate = gv('vplate');
   if (!brand || !model || !plate) { alert('Preencha os campos obrigatorios.'); return; }
-  var obj = { brand:brand, model:model, year:Number(gv('vyear')), plate:plate.toUpperCase(), color:gv('vcolor'), chassis:gv('vchassi'), renavam:gv('vrenavam'), owner:gv('vowner'), ownerName:gv('vowner2'), entryValue:Number(gv('ventry')), saleValue:Number(gv('vsale')), entryType:gv('vetype'), status:gv('vstatus'), mileage:Number(gv('vmil')), expenses: id ? (DB.vehicles.find(function(v){return v.id===id;})||{}).expenses||0 : 0 };
+  var obj = { brand:brand, model:model||gv('vmodel'), year:Number(gv('vyear')), plate:plate.toUpperCase(), color:gv('vcolor'), chassis:gv('vchassi'), renavam:gv('vrenavam'), owner:gv('vowner'), ownerName:gv('vowner2'), entryValue:Number(gv('ventry')), saleValue:Number(gv('vsale')), entryType:gv('vetype'), status:gv('vstatus'), mileage:Number(gv('vmil')), expenses: id ? (DB.vehicles.find(function(v){return v.id==id;})||{}).expenses||0 : 0 };
   if (supaConfigured()) {
     var dbObj = { brand:obj.brand, model:obj.model, year:obj.year, plate:obj.plate, color:obj.color, chassis:obj.chassis, renavam:obj.renavam, owner:obj.owner, owner_name:obj.ownerName, entry_value:obj.entryValue, sale_value:obj.saleValue, entry_type:obj.entryType, status:obj.status, mileage:obj.mileage };
     var prom = id ? supaUpdate('vehicles', id, dbObj) : supaInsert('vehicles', dbObj);
     prom.then(function(r) {
       var saved = Array.isArray(r) ? r[0] : r;
-      if (id) { DB.vehicles = DB.vehicles.map(function(v) { return v.id === id ? Object.assign({}, v, obj) : v; }); }
+      if (id) { DB.vehicles = DB.vehicles.map(function(v) { return v.id == id ? Object.assign({}, v, obj) : v; }); }
       else { obj.id = saved.id; DB.vehicles.push(obj); }
       closeModal(); rVehicles();
     });
   } else {
-    if (id) { DB.vehicles = DB.vehicles.map(function(v) { return v.id === id ? Object.assign({}, v, obj) : v; }); }
+    if (id) { DB.vehicles = DB.vehicles.map(function(v) { return v.id == id ? Object.assign({}, v, obj) : v; }); }
     else { obj.id = nextId(DB.vehicles); DB.vehicles.push(obj); }
     closeModal(); rVehicles();
   }
 }
 function delVeh(id) {
   if (confirm('Excluir veiculo?')) {
-    DB.vehicles = DB.vehicles.filter(function(v) { return v.id !== id; });
+    DB.vehicles = DB.vehicles.filter(function(v) { return v.id != id; });
     if (supaConfigured()) supaDelete('vehicles', id);
     rVehicles();
   }
@@ -824,7 +892,7 @@ function rLeads() {
     return { cells: [l.date,'<strong>'+l.name+'</strong>',l.phone,l.interest,bk(l.portal,'bb'),lbk(l.status),l.notes], data: l };
   }), function(l) {
     var opts = LSTS.map(function(s) { return '<option value="'+s+'"'+(l.status===s?' selected':'')+'>'+s+'</option>'; }).join('');
-    return '<select onchange="updLead('+l.id+',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
+    return '<select onchange="updLead(\'' + l.id + '\',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
   });
   h += '</div>';
   document.getElementById('p-leads').innerHTML = h;
@@ -1094,7 +1162,7 @@ function rDesp() {
     }), function(s) {
       var opts = ['Aguardando','Em andamento','ATPV Enviado','Concluido'].map(function(o) { return '<option value="'+o+'"'+(s.desp===o?' selected':'')+'>'+o+'</option>'; }).join('');
       return '<button class="btn btnp" style="font-size:12px;padding:7px 14px;background:#1e293b;margin-right:6px" onclick="openFluxo('+JSON.stringify(s.id)+')">📋 Ver Fluxo</button>'
-        + '<select onchange="updDesp('+s.id+',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
+        + '<select onchange="updDesp(\'' + s.id + '\',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
     });
   }
   h += '</div>';
