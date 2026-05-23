@@ -339,7 +339,7 @@ function showLoading(show) {
 
 // Mappers — converte nomes do banco (snake_case) para o JS (camelCase)
 function mapVehicle(r) { return { id:r.id, brand:r.brand, model:r.model, year:r.year, plate:r.plate, color:r.color, chassis:r.chassis, renavam:r.renavam, owner:r.owner, ownerName:r.owner_name, entryValue:r.entry_value, saleValue:r.sale_value, expenses:r.expenses, status:r.status, entryType:r.entry_type, mileage:r.mileage }; }
-function mapClient(r)  { return { id:r.id, name:r.name, cpf:r.cpf, phone:r.phone, email:r.email, address:r.address, city:r.city, type:r.type }; }
+function mapClient(r)  { return { id:r.id, name:r.name, cpf:r.cpf, phone:r.phone, email:r.email, address:r.address, city:r.city, type:r.type, birthdate:r.birthdate }; }
 function mapSale(r)    { return { id:r.id, vehicleId:r.vehicle_id, clientId:r.client_id, seller:r.seller, saleDate:r.sale_date, saleValue:r.sale_value, payMethod:r.pay_method, bankName:r.bank_name, commission:r.commission, transferType:r.transfer_type, desp:r.despachante, status:r.status }; }
 function mapExpense(r) { return { id:r.id, cat:r.category, desc:r.description, value:r.value, date:r.date, type:r.type, paid:r.paid }; }
 function mapEmployee(r){ return { id:r.id, name:r.name, role:r.role, salary:r.salary, helpCost:r.help_cost, sales:0 }; }
@@ -770,9 +770,10 @@ function rClients() {
   h += '<button class="btn btnp" onclick="openCliModal()">+ Novo Cliente</button></div>';
   h += '<div class="tw"><div class="tbar"><div class="srch"><span class="srchico">' + svgIcon('leads',16,'#94a3b8') + '</span>';
   h += '<input type="text" placeholder="Buscar..." value="' + CF.q + '" oninput="CF.q=this.value;rClients()"/></div></div>';
-  h += mkTable(['Nome','CPF','Telefone','Email','Cidade','Tipo'], list.map(function(c) {
+  h += mkTable(['Nome','CPF','Telefone','Email','Cidade','Nascimento','Tipo'], list.map(function(c) {
     var tb = c.type==='Comprador'?'bg':c.type==='Vendedor'?'bb':'by';
-    return { cells: ['<strong>'+c.name+'</strong>', c.cpf, c.phone, c.email, c.city, bk(c.type,tb)], data: c };
+    var bd = c.birthdate ? (function(p){return p[2]+'/'+p[1]+'/'+p[0];})(c.birthdate.split('-')) : '-';
+    return { cells: ['<strong>'+c.name+'</strong>', c.cpf, c.phone, c.email, c.city, bd, bk(c.type,tb)], data: c };
   }));
   h += '</div>';
   document.getElementById('p-clients').innerHTML = h;
@@ -782,15 +783,16 @@ function openCliModal() {
   h += finp('cname','Nome Completo','',true) + finp('ccpf','CPF','');
   h += finp('cphone','Telefone','',true) + finp('cemail','Email','','','email');
   h += finp('ccity','Cidade','Curitiba');
+  h += finp('cbirth','Data de Nascimento','','','date');
   h += fsel('ctype','Tipo','Comprador',['Comprador','Vendedor','Lead']);
   h += '</div><div class="modal-foot"><button class="btn btns" onclick="closeModal()">Cancelar</button><button class="btn btnp" onclick="saveCli()">Cadastrar</button></div></div>';
   openModal(h, 'modal-md');
 }
 function saveCli() {
   if (!gv('cname') || !gv('cphone')) { alert('Nome e telefone obrigatorios.'); return; }
-  var obj = { name:gv('cname'), cpf:gv('ccpf'), phone:gv('cphone'), email:gv('cemail'), city:gv('ccity'), type:gv('ctype') };
+  var obj = { name:gv('cname'), cpf:gv('ccpf'), phone:gv('cphone'), email:gv('cemail'), city:gv('ccity'), type:gv('ctype'), birthdate:gv('cbirth') };
   if (supaConfigured()) {
-    supaInsert('clients', obj).then(function(r) {
+    supaInsert('clients', { name:obj.name, cpf:obj.cpf, phone:obj.phone, email:obj.email, city:obj.city, type:obj.type, birthdate:obj.birthdate }).then(function(r) {
       var saved = Array.isArray(r) ? r[0] : r;
       obj.id = saved.id; DB.clients.push(obj);
       closeModal(); rClients();
@@ -863,7 +865,7 @@ function rSales() {
   var h = '<div class="ph"><div><h2 class="ptitle">Vendas</h2><p class="psub">Registro de vendas</p></div>';
   h += '<button class="btn btnp" onclick="openSaleModal()">+ Registrar Venda</button></div>';
   h += '<div class="tw">';
-  var dm = { 'Concluido':'bg','Em andamento':'bb','Aguardando':'by' };
+  var dm = { 'Concluido':'bg','Em andamento':'bb','Aguardando':'by','ATPV Enviado':'bpu' };
   h += mkTable(['Data','Veiculo','Cliente','Vendedor','Valor','Pagamento','Comissao','Desp.','Status'], DB.sales.map(function(s) {
     var veh = DB.vehicles.find(function(v) { return v.id === s.vehicleId; });
     var cli = DB.clients.find(function(c) { return c.id === s.clientId; });
@@ -1068,7 +1070,7 @@ function rDesp() {
   if (!isG()) { document.getElementById('p-despachante').innerHTML = '<div class="lockscr"><p>Acesso restrito ao gestor.</p></div>'; return; }
   var pend = DB.sales.filter(function(s) { return s.desp !== 'Concluido'; });
   var done = DB.sales.filter(function(s) { return s.desp === 'Concluido'; });
-  var h = '<div class="ph"><div><h2 class="ptitle">Despachante</h2><p class="psub">Controle de transferencias</p></div></div>';
+  var h = '<div class="ph"><div><h2 class="ptitle">Despachante</h2><p class="psub">Controle de transferencias</p></div><button class="btn btnp" onclick="openDespModal()">+ Nova Transferencia</button></div>';
   h += '<div class="sg" style="grid-template-columns:repeat(3,1fr)">';
   h += scard('despachante','Pendentes',pend.length,'Aguardando/Em andamento','#f59e0b');
   h += scard('sales','Concluidos',done.length,'Finalizados','#22c55e');
@@ -1080,7 +1082,7 @@ function rDesp() {
   h += '<button class="tpill'+(despTab2==='todos'?' active':'')+'" onclick="despTab2=\'todos\';rDesp()">Todos</button>';
   h += '</div>';
   var show = despTab2==='pendente' ? pend : despTab2==='concluido' ? done : DB.sales;
-  var dm = { 'Concluido':'bg','Em andamento':'bb','Aguardando':'by' };
+  var dm = { 'Concluido':'bg','Em andamento':'bb','Aguardando':'by','ATPV Enviado':'bpu' };
   h += '<div class="tw">';
   if (!show.length) {
     h += '<div style="padding:40px;text-align:center;color:#94a3b8">Nenhuma transferencia ' + (despTab2==='pendente'?'pendente!':'aqui.') + '</div>';
@@ -1090,8 +1092,9 @@ function rDesp() {
       var cli = DB.clients.find(function(c) { return c.id === s.clientId; });
       return { cells: [s.saleDate, veh?'<strong style="color:#22c55e">'+veh.plate+'</strong>':'-', veh?veh.brand+' '+veh.model+' '+veh.year:'-', cli?cli.name:'-', bk(s.transferType,s.transferType==='Cortesia'?'bg':'bb'), bk(s.desp,dm[s.desp]||'bgr')], data: s };
     }), function(s) {
-      var opts = ['Aguardando','Em andamento','Concluido'].map(function(o) { return '<option value="'+o+'"'+(s.desp===o?' selected':'')+'>'+o+'</option>'; }).join('');
-      return '<select onchange="updDesp('+s.id+',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
+      var opts = ['Aguardando','Em andamento','ATPV Enviado','Concluido'].map(function(o) { return '<option value="'+o+'"'+(s.desp===o?' selected':'')+'>'+o+'</option>'; }).join('');
+      return '<button class="btn btnp" style="font-size:12px;padding:7px 14px;background:#1e293b;margin-right:6px" onclick="openFluxo('+JSON.stringify(s.id)+')">📋 Ver Fluxo</button>'
+        + '<select onchange="updDesp('+s.id+',this.value)" style="padding:5px 8px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit">' + opts + '</select>';
     });
   }
   h += '</div>';
@@ -1455,6 +1458,428 @@ function rReports() {
 
   document.getElementById('p-reports').innerHTML = h;
 }
+
+
+function openDespModal() {
+  var vOpts = '<option value="">Selecionar veiculo...</option>' + DB.vehicles.map(function(v){
+    return '<option value="'+v.id+'">'+v.plate+' - '+v.brand+' '+v.model+' '+v.year+'</option>';
+  }).join('');
+  var cOpts = '<option value="">Selecionar cliente...</option>' + DB.clients.map(function(c){
+    return '<option value="'+c.id+'">'+c.name+'</option>';
+  }).join('');
+  var h = mHead('Nova Transferencia - Despachante') + '<div class="modal-body"><div class="fgrid">';
+  h += '<div class="fg"><label>Veiculo <span class="req">*</span></label><select id="dv">' + vOpts + '</select></div>';
+  h += '<div class="fg"><label>Comprador</label><select id="dc">' + cOpts + '</select></div>';
+  h += finp('ddate','Data da Venda',td(),'','date');
+  h += fsel('dtransf','Tipo de Transferencia','Cliente',['Cliente','Cortesia']);
+  h += fsel('ddesp','Status','Aguardando',['Aguardando','Em andamento','Concluido']);
+  h += finp('ddesc','Observacoes','');
+  h += '</div><div class="modal-foot"><button class="btn btns" onclick="closeModal()">Cancelar</button><button class="btn btnp" onclick="saveDesp()">Registrar</button></div></div>';
+  openModal(h,'modal-md');
+}
+
+function saveDesp() {
+  var vId = gv('dv');
+  if (!vId) { alert('Selecione o veiculo.'); return; }
+  var obj = { vehicleId:vId, clientId:gv('dc')||null, seller:CUR.user, saleDate:gv('ddate'), saleValue:0, payMethod:'Despachante', bankName:'', commission:0, transferType:gv('dtransf'), desp:gv('ddesp'), status:'Em andamento' };
+  if (supaConfigured()) {
+    var dbObj = { vehicle_id:vId, client_id:obj.clientId||null, seller:obj.seller, sale_date:obj.saleDate, sale_value:0, pay_method:'Despachante', commission:0, transfer_type:obj.transferType, despachante:obj.desp, status:'Em andamento' };
+    supaInsert('sales', dbObj).then(function(r) {
+      var saved = Array.isArray(r)?r[0]:r;
+      obj.id = saved.id;
+      DB.sales.push(obj);
+      closeModal(); rDesp();
+    });
+  } else {
+    obj.id = nextId(DB.sales);
+    DB.sales.push(obj);
+    closeModal(); rDesp();
+  }
+}
+
+
+
+
+
+function openFluxo(saleId) {
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) return;
+  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
+  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+
+  var vNome  = veh ? veh.brand + ' ' + veh.model : '___';
+  var vPlaca = veh ? veh.plate : '___';
+  var cNome  = cli ? cli.name : '___';
+  var cTel   = cli ? (cli.phone || '___') : '___';
+
+  // Load saved fluxo state
+  var fluxo = sale.fluxo || {};
+  var tipoTransf = sale.transferType || 'Cliente'; // Cliente ou Cortesia
+
+  function stepCard(num, icon, title, status, color, onclick) {
+    var done = status === 'ok';
+    var bg = done ? color+'15' : '#f8fafc';
+    var borderColor = done ? color : '#e5e7eb';
+    var checkIcon = done ? '<span style="background:'+color+';color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px">✓</span>' : '<span style="background:#e5e7eb;color:#94a3b8;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px">'+num+'</span>';
+    return '<div style="border:2px solid '+borderColor+';border-radius:12px;padding:16px;background:'+bg+';margin-bottom:12px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between">'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + checkIcon
+      + '<div><div style="font-size:15px;font-weight:700;color:#1e293b">'+icon+' '+title+'</div>'
+      + '<div style="font-size:12px;color:#64748b;margin-top:2px">'+(done?'<span style="color:'+color+';font-weight:600">Concluido</span>':'Pendente')+'</div></div></div>'
+      + '<button class="btn btnp" style="font-size:12px;padding:7px 14px;background:'+(done?color:'#1e293b')+'" onclick="'+onclick+'">'+( done?'✓ Ver':'Abrir')+'</button>'
+      + '</div></div>';
+  }
+
+  var h = mHead('Fluxo Pos-Venda - ' + vPlaca + ' | ' + vNome);
+  h += '<div class="modal-body">';
+
+  // Header info
+  h += '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">';
+  h += '<div><div style="font-size:16px;font-weight:800;color:#1e293b">'+vNome+'</div>';
+  h += '<div style="font-size:13px;color:#64748b;margin-top:2px">Placa: <strong style="color:#22c55e">'+vPlaca+'</strong> | Cliente: <strong>'+cNome+'</strong> | '+cTel+'</div></div>';
+  h += '<div style="text-align:right"><div style="font-size:11px;color:#64748b;font-weight:700">TRANSFERENCIA</div>';
+  h += '<div style="font-size:13px;font-weight:700;color:'+(tipoTransf==='Cortesia'?'#22c55e':'#3b82f6')+'">'+( tipoTransf==='Cortesia'?'🎁 Cortesia':'👤 Por conta do Cliente')+'</div></div>';
+  h += '</div>';
+
+  // STEP 1 - ATPV
+  h += stepCard(1,'📋','ATPV Preenchido', fluxo.atpv||'', '#22c55e', 'closeModal();openAtpv(\''+saleId+'\')');
+
+  // STEP 2 - Reconhecimento (depends on transferType)
+  h += '<div style="border:2px solid '+(fluxo.reconh?'#f59e0b':'#e5e7eb')+';border-radius:12px;padding:16px;background:'+(fluxo.reconh?'#fef9c315':'#f8fafc')+';margin-bottom:12px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  h += '<div style="display:flex;align-items:center;gap:10px">';
+  h += '<span style="background:'+(fluxo.reconh==='ok'?'#f59e0b':'#e5e7eb')+';color:'+(fluxo.reconh==='ok'?'white':'#94a3b8')+';border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px">'+(fluxo.reconh==='ok'?'✓':'2')+'</span>';
+  h += '<div><div style="font-size:15px;font-weight:700;color:#1e293b">✍️ Reconhecimento</div>';
+  h += '<div style="font-size:12px;color:#64748b;margin-top:2px">'+(tipoTransf==='Cortesia'?'Procuracao + Loja assina pelos 2':'Loja assina (vendedor) + Cliente assina (comprador)')+'</div></div></div></div>';
+
+  if (tipoTransf === 'Cortesia') {
+    // Procuracao path
+    h += '<div style="display:flex;gap:10px">';
+    var p1done = fluxo.procuracao === 'ok';
+    var p2done = fluxo.lojaAssinou === 'ok';
+    h += '<button onclick="toggleFluxo(\''+saleId+'\',\'procuracao\')" class="btn" style="flex:1;padding:10px;border:2px solid '+(p1done?'#f59e0b':'#e5e7eb')+';border-radius:8px;background:'+(p1done?'#fef9c3':'white')+';cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">'+(p1done?'✓ ':'')+'📝 Procuracao Recebida</button>';
+    h += '<button onclick="toggleFluxo(\''+saleId+'\',\'lojaAssinou\')" class="btn" style="flex:1;padding:10px;border:2px solid '+(p2done?'#f59e0b':'#e5e7eb')+';border-radius:8px;background:'+(p2done?'#fef9c3':'white')+';cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">'+(p2done?'✓ ':'')+'✍️ Loja Assinou pelos 2</button>';
+    h += '</div>';
+  } else {
+    // Separado path
+    h += '<div style="display:flex;gap:10px">';
+    var r1done = fluxo.lojaVendedor === 'ok';
+    var r2done = fluxo.clienteComprador === 'ok';
+    h += '<button onclick="toggleFluxo(\''+saleId+'\',\'lojaVendedor\')" class="btn" style="flex:1;padding:10px;border:2px solid '+(r1done?'#f59e0b':'#e5e7eb')+';border-radius:8px;background:'+(r1done?'#fef9c3':'white')+';cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">'+(r1done?'✓ ':'')+'🏪 Loja Assinou (Vendedor)</button>';
+    h += '<button onclick="toggleFluxo(\''+saleId+'\',\'clienteComprador\')" class="btn" style="flex:1;padding:10px;border:2px solid '+(r2done?'#f59e0b':'#e5e7eb')+';border-radius:8px;background:'+(r2done?'#fef9c3':'white')+';cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">'+(r2done?'✓ ':'')+'👤 Cliente Assinou (Comprador)</button>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // STEP 3 - Vistoria
+  h += stepCard(3,'🔍','Vistoria Agendada', fluxo.vistoria||'', '#8b5cf6', 'closeModal();openVistoria(\''+saleId+'\')');
+
+  // STEP 4 - Transferencia status
+  h += '<div style="border:2px solid '+(fluxo.transferencia==='Concluida'?'#22c55e':fluxo.transferencia==='Em andamento'?'#3b82f6':'#e5e7eb')+';border-radius:12px;padding:16px;background:'+(fluxo.transferencia?'#f0fdf415':'#f8fafc')+';margin-bottom:12px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  h += '<div style="display:flex;align-items:center;gap:10px">';
+  h += '<span style="background:'+(fluxo.transferencia==='Concluida'?'#22c55e':fluxo.transferencia?'#3b82f6':'#e5e7eb')+';color:'+(fluxo.transferencia?'white':'#94a3b8')+';border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px">'+(fluxo.transferencia==='Concluida'?'✓':'4')+'</span>';
+  h += '<div><div style="font-size:15px;font-weight:700;color:#1e293b">🔄 Transferencia</div>';
+  h += '<div style="font-size:12px;color:#64748b;margin-top:2px">'+(fluxo.transferencia||'Pendente')+'</div></div></div></div>';
+  h += '<div style="display:flex;gap:8px">';
+  [['Pendente','#f59e0b','⏳'],['Em andamento','#3b82f6','🔄'],['Concluida','#22c55e','✅']].forEach(function(st){
+    var active = fluxo.transferencia === st[0];
+    h += '<button onclick="setFluxoTransf(\''+saleId+'\',\''+st[0]+'\')" class="btn" style="flex:1;padding:10px;border:2px solid '+(active?st[1]:'#e5e7eb')+';border-radius:8px;background:'+(active?st[1]+'20':'white')+';cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:'+(active?st[1]:'#374151')+'">'+st[2]+' '+st[0]+'</button>';
+  });
+  h += '</div></div>';
+
+  // Progress bar
+  var steps = [fluxo.atpv, (tipoTransf==='Cortesia'?(fluxo.procuracao&&fluxo.lojaAssinou):(fluxo.lojaVendedor&&fluxo.clienteComprador)), fluxo.vistoria, fluxo.transferencia==='Concluida'];
+  var done = steps.filter(Boolean).length;
+  h += '<div style="background:#f1f5f9;border-radius:8px;padding:12px;text-align:center">';
+  h += '<div style="font-size:13px;color:#64748b;margin-bottom:6px">Progresso: <strong>'+done+'/4 etapas</strong></div>';
+  h += '<div class="pb"><div class="pf" style="width:'+(done/4*100)+'%;background:#22c55e"></div></div></div>';
+
+  h += '<div class="modal-foot"><button class="btn btns" onclick="closeModal()">Fechar</button></div>';
+  h += '</div>';
+  h += '<script>window._currentFluxoId=\''+saleId+'\';<\/script>';
+
+  openModal(h, 'modal-lg');
+}
+
+function toggleFluxo(saleId, key) {
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) return;
+  var fluxo = sale.fluxo ? Object.assign({}, sale.fluxo) : {};
+  fluxo[key] = fluxo[key] === 'ok' ? '' : 'ok';
+
+  // Auto-set reconh if both parts done
+  var tipoTransf = sale.transferType || 'Cliente';
+  if (tipoTransf === 'Cortesia') {
+    fluxo.reconh = (fluxo.procuracao==='ok' && fluxo.lojaAssinou==='ok') ? 'ok' : '';
+  } else {
+    fluxo.reconh = (fluxo.lojaVendedor==='ok' && fluxo.clienteComprador==='ok') ? 'ok' : '';
+  }
+
+  DB.sales = DB.sales.map(function(s){ return s.id==saleId ? Object.assign({},s,{fluxo:fluxo}) : s; });
+  openFluxo(saleId);
+}
+
+function setFluxoTransf(saleId, status) {
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) return;
+  var fluxo = sale.fluxo ? Object.assign({}, sale.fluxo) : {};
+  fluxo.transferencia = status;
+  var despStatus = status==='Concluida'?'Concluido':status==='Em andamento'?'Em andamento':'Aguardando';
+  DB.sales = DB.sales.map(function(s){ return s.id==saleId ? Object.assign({},s,{fluxo:fluxo, desp:despStatus}) : s; });
+  if (supaConfigured()) supaUpdate('sales', saleId, { despachante:despStatus });
+  openFluxo(saleId);
+}
+
+// Mark ATPV as done when sending
+var _origUpdDesp = updDesp;
+
+
+function markFluxoStep(saleId, key) {
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) return;
+  var fluxo = sale.fluxo ? Object.assign({}, sale.fluxo) : {};
+  fluxo[key] = 'ok';
+  DB.sales = DB.sales.map(function(s){ return s.id==saleId ? Object.assign({},s,{fluxo:fluxo}) : s; });
+}
+
+
+function openTransf(saleId) {
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) return;
+  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
+  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+
+  var vNome  = veh ? veh.brand + ' ' + veh.model : '___';
+  var vPlaca = veh ? veh.plate : '___';
+  var cNome  = cli ? cli.name : '___';
+  var cTel   = cli ? (cli.phone || '___') : '___';
+
+  var curResp   = sale.transferType || 'Cliente';
+  var curStatus = sale.transferStatus || 'Pendente';
+
+  var h = mHead('Transferencia - ' + vPlaca + ' | ' + vNome);
+  h += '<div class="modal-body">';
+
+  // Veiculo e cliente info
+  h += '<div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid #e5e7eb">';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">VEICULO</div><div style="font-size:14px;font-weight:700;margin-top:2px">'+vNome+' - <span style="color:#22c55e">'+vPlaca+'</span></div></div>';
+  h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">CLIENTE</div><div style="font-size:14px;font-weight:700;margin-top:2px">'+cNome+'</div><div style="font-size:12px;color:#94a3b8">'+cTel+'</div></div>';
+  h += '</div></div>';
+
+  // Por conta de
+  h += '<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px">Transferencia por conta de:</div>';
+  h += '<div style="display:flex;gap:10px">';
+  ['Cliente','Loja'].forEach(function(op){
+    var active = curResp === op;
+    var color = op==='Cliente' ? '#22c55e' : '#3b82f6';
+    var icon = op==='Cliente' ? '👤' : '🏪';
+    var sub = op==='Cliente' ? 'Sem custo para a loja' : 'Loja arca com o valor';
+    h += '<button onclick="(function(){document.querySelectorAll(\'.tr-resp-btn\').forEach(function(b){b.style.borderColor=\'#e5e7eb\';b.style.background=\'white\';b.style.color=\'#374151\';});this.style.borderColor=\''+color+'\';this.style.background=\''+color+'15\';this.style.color=\''+color+'\';window._trResp=\''+op+'\';}).call(this)" ';
+    h += 'class="tr-resp-btn btn" style="flex:1;flex-direction:column;align-items:center;padding:14px;border:2px solid '+(active?color:'#e5e7eb')+';border-radius:10px;background:'+(active?color+'15':'white')+';color:'+(active?color:'#374151')+';cursor:pointer;font-family:inherit">';
+    h += '<span style="font-size:20px">'+icon+'</span>';
+    h += '<span style="font-size:14px;font-weight:700;margin-top:4px">'+op+'</span>';
+    h += '<span style="font-size:11px;opacity:.7">'+sub+'</span>';
+    h += '</button>';
+  });
+  h += '</div></div>';
+
+  // Status
+  h += '<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px">Status da Transferencia:</div>';
+  h += '<div style="display:flex;gap:10px">';
+  var statuses = [['Pendente','#f59e0b','⏳'],['Em andamento','#3b82f6','🔄'],['Concluida','#22c55e','✅']];
+  statuses.forEach(function(st){
+    var active = curStatus === st[0];
+    h += '<button onclick="(function(){document.querySelectorAll(\'.tr-st-btn\').forEach(function(b){b.style.borderColor=\'#e5e7eb\';b.style.background=\'white\';b.style.color=\'#374151\';});this.style.borderColor=\''+st[1]+'\';this.style.background=\''+st[1]+'15\';this.style.color=\''+st[1]+'\';window._trStatus=\''+st[0]+'\';}).call(this)" ';
+    h += 'class="tr-st-btn btn" style="flex:1;flex-direction:column;align-items:center;padding:14px;border:2px solid '+(active?st[1]:'#e5e7eb')+';border-radius:10px;background:'+(active?st[1]+'15':'white')+';color:'+(active?st[1]:'#374151')+';cursor:pointer;font-family:inherit">';
+    h += '<span style="font-size:22px">'+st[2]+'</span>';
+    h += '<span style="font-size:13px;font-weight:700;margin-top:4px">'+st[0]+'</span>';
+    h += '</button>';
+  });
+  h += '</div></div>';
+
+  h += '<div class="modal-foot">';
+  h += '<button class="btn btns" onclick="closeModal()">Cancelar</button>';
+  h += '<button class="btn btnp" style="background:#3b82f6" onclick="saveTransf(\''+saleId+'\')">';
+  h += 'Salvar Status</button></div></div>';
+
+  // Init globals
+  h += '<script>window._trResp=\''+curResp+'\';window._trStatus=\''+curStatus+'\';<\/script>';
+
+  openModal(h, 'modal-md');
+}
+
+function saveTransf(saleId) {
+  var resp   = window._trResp   || 'Cliente';
+  var status = window._trStatus || 'Pendente';
+  var despStatus = status==='Concluida' ? 'Concluido' : status==='Em andamento' ? 'Em andamento' : 'Aguardando';
+
+  DB.sales = DB.sales.map(function(s){
+    return s.id==saleId ? Object.assign({},s,{transferType:resp, transferStatus:status, desp:despStatus}) : s;
+  });
+  if (supaConfigured()) {
+    supaUpdate('sales', saleId, { transfer_type:resp, despachante:despStatus });
+  }
+  closeModal();
+  rDesp();
+}
+
+
+
+
+
+function saveTransf(saleId) {
+  var respEl = document.querySelector('input[name=tr-resp]:checked');
+  var statusEl = document.querySelector('input[name=tr-status]:checked');
+  var custoEl = document.getElementById('tr-custo');
+  var resp = respEl ? respEl.value : 'Cliente';
+  var status = statusEl ? statusEl.value : 'Pendente';
+  var custo = (resp==='Loja' && custoEl) ? Number(custoEl.value)||0 : 0;
+
+  // Map to desp status
+  var despStatus = status==='Concluida' ? 'Concluido' : status==='Em andamento' ? 'Em andamento' : 'Aguardando';
+
+  DB.sales = DB.sales.map(function(s){
+    return s.id==saleId ? Object.assign({},s,{transferType:resp, transferCost:custo, transferStatus:status, desp:despStatus}) : s;
+  });
+
+  if (supaConfigured()) {
+    supaUpdate('sales', saleId, { transfer_type:resp, despachante:despStatus });
+  }
+
+  // If loja paid, add to expenses automatically
+  if (resp==='Loja' && custo>0) {
+    var sale = DB.sales.find(function(s){return s.id==saleId;});
+    var veh = sale ? DB.vehicles.find(function(v){return v.id==sale.vehicleId;}) : null;
+    var desc = 'Transferencia ' + (veh ? veh.plate : '') + ' - por conta da Loja';
+    var exists = DB.expenses.find(function(e){return e.desc===desc;});
+    if (!exists) {
+      var expObj = { cat:'Despachante', desc:desc, value:custo, date:td(), type:'Despachante', paid:'Pendente' };
+      if (supaConfigured()) {
+        supaInsert('expenses', { category:expObj.cat, description:expObj.desc, value:expObj.value, date:expObj.date, type:expObj.type, paid:expObj.paid });
+      }
+      expObj.id = nextId(DB.expenses);
+      DB.expenses.push(expObj);
+    }
+  }
+
+  closeModal();
+  rDesp();
+}
+
+function openVistoria(saleId) {
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) return;
+  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
+  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+
+  var vNome  = veh ? veh.brand + ' ' + veh.model : '___';
+  var vPlaca = veh ? veh.plate : '___';
+  var cNome  = cli ? cli.name : '___';
+  var cTel   = cli ? (cli.phone || '___') : '___';
+
+  var h = mHead('Agendar Vistoria - ' + vPlaca);
+  h += '<div class="modal-body">';
+  h += '<div class="fgrid">';
+  h += finp('vis-data','Data da Vistoria',td(),'true','date');
+  h += finp('vis-hora','Horario','09:00','true','time');
+  h += finp('vis-local','Local/Endereco','','');
+  h += '</div>';
+  h += '<p style="font-size:13px;color:#64748b;margin:12px 0 8px">Texto gerado (edite se necessario):</p>';
+
+  var dataHoje = new Date().toLocaleDateString('pt-BR');
+  var texto = 'AGENDAMENTO DE VISTORIA\n\n'
+    + 'DATA: ' + dataHoje + '\n'
+    + 'HORARIO: 09:00\n'
+    + 'LOCAL: ___\n\n'
+    + 'DADOS DO VEICULO:\n'
+    + 'Carro: ' + vNome + '\n'
+    + 'Placa: ' + vPlaca + '\n\n'
+    + 'DADOS DO PROPRIETARIO/CLIENTE:\n'
+    + 'Nome: ' + cNome + '\n'
+    + 'Telefone: ' + cTel + '\n';
+
+  h += '<textarea id="vis-text" style="width:100%;height:260px;padding:14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:monospace;line-height:1.7;resize:none">' + texto + '</textarea>';
+
+  h += '<div class="modal-foot">';
+  h += '<button class="btn btns" onclick="closeModal()">Fechar</button>';
+  h += '<button class="btn btns" onclick="(function(){var el=document.getElementById(\'vis-text\');if(!el)return;el.select();document.execCommand(\'copy\');var b=event.target;b.textContent=\'Copiado!\';b.style.background=\'#22c55e\';b.style.color=\'white\';setTimeout(function(){b.textContent=\'Copiar\';b.style.background=\'\';b.style.color=\'\';},2000);})()">Copiar</button>';
+  h += '<button class="btn btnp" style="background:#8b5cf6" onclick="(function(){';
+  h += 'var data=document.getElementById(\'vis-data\')?document.getElementById(\'vis-data\').value:\'\';';
+  h += 'var hora=document.getElementById(\'vis-hora\')?document.getElementById(\'vis-hora\').value:\'09:00\';';
+  h += 'var local=document.getElementById(\'vis-local\')?document.getElementById(\'vis-local\').value:\'___\';';
+  h += 'var el=document.getElementById(\'vis-text\');';
+  h += 'if(el){var t=el.value;';
+  h += 'if(data){var p=data.split(\'-\');t=t.replace(\'DATA: \'+new Date().toLocaleDateString(\'pt-BR\'),\'DATA: \'+p[2]+\'/\'+p[1]+\'/\'+p[0]);}';
+  h += 't=t.replace(\'HORARIO: 09:00\',\'HORARIO: \'+hora);';
+  h += 't=t.replace(\'LOCAL: ___\',\'LOCAL: \'+local);';
+  h += 'el.value=t;}';
+  h += '})()">Atualizar Texto</button>';
+  h += '<button class="btn btnp" onclick="markFluxoStep(\''+saleId+'\',\'vistoria\');updDesp(\''+saleId+'\',\'Em andamento\');closeModal();rDesp()">Confirmar Agendamento</button>';
+  h += '</div></div>';
+
+  openModal(h, 'modal-md');
+}
+
+
+function openAtpv(saleId) {
+  // Find sale
+  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  if (!sale) { alert('Venda nao encontrada.'); return; }
+
+  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
+  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+
+  var vNome    = veh ? (veh.brand + ' ' + veh.model) : '___';
+  var vPlaca   = veh ? veh.plate : '___';
+  var vRenavam = veh ? (veh.renavam || '___') : '___';
+  var vKm      = veh ? (veh.mileage || '___') : '___';
+  var vValor   = sale.saleValue > 0 ? 'R$ ' + Number(sale.saleValue).toLocaleString('pt-BR') : '___';
+  var cNome    = cli ? cli.name : '___';
+  var cCpf     = cli ? (cli.cpf || '___') : '___';
+  var cEmail   = cli ? (cli.email || '___') : '___';
+  var cEnd     = cli ? (cli.address || '___') : '___';
+  var cCidade  = cli ? (cli.city || '___') : '___';
+
+  var texto = 'IDENTIFICACAO DO VEICULO: ' + vNome + '\n'
+    + 'PLACA: ' + vPlaca + '\n'
+    + 'RENAVAM: ' + vRenavam + '\n'
+    + 'Numero CRV: ___\n'
+    + 'ODOMETRO (KM): ' + vKm + '\n'
+    + 'VALOR DA VENDA: ' + vValor + '\n'
+    + '\n'
+    + 'IDENTIFICACAO DO COMPRADOR - ' + vNome + '\n'
+    + 'NOME: ' + cNome + '\n'
+    + 'CPF/CNPJ: ' + cCpf + '\n'
+    + 'EMAIL: ' + cEmail + '\n'
+    + 'ENDERECO: ' + cEnd + '\n'
+    + 'CIDADE: ' + cCidade + '\n';
+
+  var h = mHead('ATPV - ' + vPlaca + ' | ' + vNome);
+  h += '<div class="modal-body">';
+  h += '<p style="font-size:13px;color:#64748b;margin-bottom:12px">Confira os dados, copie e envie ao despachante. Depois marque como <strong>ATPV Enviado</strong>.</p>';
+  h += '<textarea id="atpv-text" style="width:100%;height:280px;padding:14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:monospace;line-height:1.7;resize:none">' + texto + '</textarea>';
+  h += '<div class="modal-foot">';
+  h += '<button class="btn btns" onclick="closeModal()">Fechar</button>';
+  h += '<button class="btn btns" onclick="copyAtpv()" id="btn-copy">Copiar Texto</button>';
+  h += '<button class="btn btnp" onclick="markFluxoStep(\''+saleId+'\',\'atpv\');updDesp(\''+saleId+'\',\'ATPV Enviado\');closeModal();rDesp()">Marcar como ATPV Enviado</button>';
+  h += '</div></div>';
+
+  openModal(h, 'modal-md');
+}
+
+function copyAtpv() {
+  var el = document.getElementById('atpv-text');
+  if (!el) return;
+  el.select();
+  document.execCommand('copy');
+  var btn = document.getElementById('btn-copy');
+  if (btn) { btn.textContent = 'Copiado!'; btn.style.background = '#22c55e'; btn.style.color = 'white'; }
+  setTimeout(function(){ if(btn){btn.textContent='Copiar Texto';btn.style.background='';btn.style.color='';} }, 2000);
+}
+
 
 // ========== INIT ==========
 document.getElementById('btn-login').onclick = doLogin;
