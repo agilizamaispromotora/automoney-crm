@@ -770,14 +770,15 @@ function openVehModal(id) {
     + '</select></div>';
   // Set correct values after modal renders
   h += '<script>setTimeout(function(){ var b=document.getElementById("vbrand"); if(b && "'+( d.brand||'')+'"){ b.value="'+(d.brand||'')+'"; onBrandChange("'+(d.brand||'')+'"); setTimeout(function(){ var m=document.getElementById("vmodel-sel"); if(m) m.value="'+(d.model||'')+'"; },100); } },50);<\/script>';
-  h += finp('vyear','Ano',d.year,true,'number') + finp('vplate','Placa',d.plate,true);
-  h += finp('vcolor','Cor',d.color) + finp('vmil','Km',d.mileage,'','number');
+  h += '<div class="fg"><label>Ano <span class="req">*</span></label><input type="text" inputmode="numeric" id="vyear" value="'+(d.year||'')+'"/></div>' + finp('vplate','Placa',d.plate,true);
+  h += finp('vcolor','Cor',d.color) + '<div class="fg"><label>Km</label><input type="text" inputmode="numeric" id="vmil" value="'+(d.mileage||'')+'"/></div>';
   h += finp('vchassi','Chassi',d.chassis) + finp('vrenavam','RENAVAM',d.renavam);
   h += fsel('vetype','Tipo Entrada',d.entryType,['Compra','Troca','Consignado','Investidor']);
   h += fsel('vowner','Proprietario',d.owner,['Loja','Consignado','Investidor']);
   h += finp('vowner2','Nome do Proprietario',d.ownerName);
   h += fsel('vstatus','Status',d.status,['Disponivel','Em Preparacao','Anunciado','Reservado','Vendido']);
-  h += finp('ventry','Valor Entrada R$',d.entryValue,'','number') + finp('vsale','Valor Venda R$',d.saleValue,'','number');
+  h += '<div class="fg"><label>Valor Entrada R$</label><input type="text" inputmode="numeric" id="ventry" value="'+(d.entryValue||'')+'"/></div>'
+    + '<div class="fg"><label>Valor Venda R$</label><input type="text" inputmode="numeric" id="vsale" value="'+(d.saleValue||'')+'"/></div>';
   h += '</div><div class="modal-foot"><button class="btn btns" onclick="closeModal()">Cancelar</button><button class="btn btnp" onclick="saveVeh(' + (id||0) + ')">Salvar</button></div></div>';
   var vBrand = d.brand || '';
   var vModel = d.model || '';
