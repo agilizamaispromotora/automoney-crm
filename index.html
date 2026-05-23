@@ -19,10 +19,10 @@ body{font-family:Segoe UI,sans-serif;background:#f1f5f9;color:#1e293b;}
 
 #app{display:flex;min-height:100vh;}
 #sidebar{width:240px;background:#1e293b;display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:width .25s;overflow:hidden;}
-#sidebar.col{width:64px;}
+#sidebar.col{width:220px;}
 .shead{padding:16px 12px;border-bottom:1px solid #334155;display:flex;flex-direction:column;align-items:center;gap:8px;}
 .logowr{display:flex;justify-content:center;width:100%;}
-#sidebar.col .logowr,.nlabel,#sidebar.col .uname,#sidebar.col .urole,#sidebar.col .ltxt{display:none;}
+#sidebar.col .uname,#sidebar.col .urole{display:none;}
 .menbtn{background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px;align-self:flex-end;}
 #sidebar.col .menbtn{align-self:center;}
 nav{flex:1;padding:12px 8px;overflow-y:auto;}
@@ -114,10 +114,10 @@ tbody tr:hover td{background:#f8fafc;}
 .chkitem.chked{border-color:#22c55e;background:#f0fdf4;}
 input[type=checkbox]{width:16px;height:16px;accent-color:#22c55e;}
 @media(max-width:768px){
-#sidebar{width:64px!important;}
-#sidebar .logowr,.nlabel,.uname,.urole,.ltxt{display:none!important;}
-#sidebar .nitem{justify-content:center;padding:10px;}
-#main{margin-left:64px!important;}
+#sidebar{width:220px!important;}
+#sidebar .uname,.urole{display:none!important;}
+#sidebar .nitem{justify-content:flex-start;padding:10px 12px;}
+#main{margin-left:220px!important;}
 .fgrid,.tcol2{grid-template-columns:1fr;}
 .sg{grid-template-columns:1fr 1fr;}
 }
