@@ -1239,7 +1239,7 @@ function rReports() {
     h += '<div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap">';
     h += '<div class="fg" style="margin:0;flex:1;min-width:220px"><label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Selecionar Veiculo</label>';
     h += '<select onchange="window._rptPlate=this.value;rReports()" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit">'+plateOpts+'</select></div>';
-    h += '<button class="btn btnp" onclick="printReport('relatorio-veiculo')">Imprimir / PDF</button>';
+    h += '<button class="btn btnp" onclick="printReport(\'relatorio-veiculo\')">Imprimir / PDF</button>';
     h += '</div>';
 
     var veiculos = selPlate ? DB.vehicles.filter(function(v){return v.id==selPlate;}) : DB.vehicles;
@@ -1460,15 +1460,32 @@ function rReports() {
 function printReport(id) {
   var el = document.getElementById(id);
   if (!el) return;
+  var css = [
+    'body{font-family:Segoe UI,sans-serif;color:#1e293b;padding:20px;}',
+    'table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px;}',
+    'th{background:#f8fafc;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e5e7eb;}',
+    'td{padding:10px 12px;border-bottom:1px solid #f1f5f9;}',
+    'h3,h4{margin:20px 0 10px;}',
+    '.bk{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}',
+    '.bg{background:#dcfce7;color:#15803d;}',
+    '.by{background:#fef9c3;color:#854d0e;}',
+    '.bb{background:#dbeafe;color:#1d4ed8;}',
+    '.br{background:#fee2e2;color:#dc2626;}',
+    '.bgr{background:#f1f5f9;color:#475569;}',
+    '.bpu{background:#f3e8ff;color:#7e22ce;}',
+    '.bo{background:#ffedd5;color:#c2410c;}',
+    '@media print{button{display:none;}}'
+  ].join('');
+  var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #22c55e;padding-bottom:12px">'
+    + '<div><h2 style="margin:0;color:#1e293b">Auto Money CRM</h2>'
+    + '<p style="margin:4px 0 0;color:#64748b;font-size:13px">Gerado em: ' + new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR') + '</p></div>'
+    + '<div style="color:#22c55e;font-size:22px;font-weight:800">AUTO MONEY</div></div>';
   var w = window.open('', '_blank');
-  w.document.write('<html><head><title>Auto Money - Relatorio</title>');
-  w.document.write('<'+'style>')body{font-family:Segoe UI,sans-serif;color:#1e293b;padding:20px;}table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px;}th{background:#f8fafc;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e5e7eb;}td{padding:10px 12px;border-bottom:1px solid #f1f5f9;}h3{margin:20px 0 10px;}.bk{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}.bg{background:#dcfce7;color:#15803d;}.by{background:#fef9c3;color:#854d0e;}.bb{background:#dbeafe;color:#1d4ed8;}.br{background:#fee2e2;color:#dc2626;}.bgr{background:#f1f5f9;color:#475569;}.bpu{background:#f3e8ff;color:#7e22ce;}.bo{background:#ffedd5;color:#c2410c;}@media print{button{display:none;}}</'+'style>');
-  w.document.write('</head><body>');
-  w.document.write('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #22c55e;padding-bottom:12px">');
-  w.document.write('<div><h2 style="margin:0;color:#1e293b">Auto Money CRM</h2><p style="margin:4px 0 0;color:#64748b;font-size:13px">Relatorio gerado em: '+new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR')+'</p></div>');
-  w.document.write('<div style="color:#22c55e;font-size:24px;font-weight:800">AUTO MONEY</div></div>');
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Auto Money - Relatorio</title><style>' + css + '</style></head><body>');
+  w.document.write(header);
   w.document.write(el.innerHTML);
-  w.document.write('<script>window.onload=function(){window.print();}<\/script>');
+  w.document.write('<script>window.onload=function(){window.print();}<' + '/script>');
   w.document.write('</body></html>');
   w.document.close();
 }
