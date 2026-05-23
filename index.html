@@ -1187,145 +1187,164 @@ function saveSup() {
 
 // ========== REPORTS ==========
 var rptTab = 'estoque';
+var rptF = {
+  dateFrom: '',
+  dateTo: '',
+  seller: '',
+  status: '',
+  portal: '',
+  employee: '',
+  plate: ''
+};
+
+function fltBar(fields) {
+  // fields: array of 'dateFrom','dateTo','seller','status','portal','employee','plate'
+  var h = '<div style="background:white;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;margin-bottom:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">';
+
+  if (fields.indexOf('dateFrom') > -1) {
+    h += '<div class="fg" style="margin:0;flex:1;min-width:140px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Data Inicial</label>';
+    h += '<input type="date" value="'+rptF.dateFrom+'" onchange="rptF.dateFrom=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"/></div>';
+  }
+  if (fields.indexOf('dateTo') > -1) {
+    h += '<div class="fg" style="margin:0;flex:1;min-width:140px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Data Final</label>';
+    h += '<input type="date" value="'+rptF.dateTo+'" onchange="rptF.dateTo=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"/></div>';
+  }
+  if (fields.indexOf('seller') > -1) {
+    var sOpts = '<option value="">Todos vendedores</option>' + DB.employees.filter(function(e){return e.role==='Gestor'||e.role==='Gestora'||e.role==='Vendedor';}).map(function(e){return '<option value="'+e.name+'"'+(rptF.seller===e.name?' selected':'')+'>'+e.name+'</option>';}).join('');
+    h += '<div class="fg" style="margin:0;flex:1;min-width:160px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Vendedor</label>';
+    h += '<select onchange="rptF.seller=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">'+sOpts+'</select></div>';
+  }
+  if (fields.indexOf('status') > -1) {
+    var stOpts = '<option value="">Todos status</option>'+['Disponivel','Em Preparacao','Anunciado','Reservado','Vendido'].map(function(s){return '<option value="'+s+'"'+(rptF.status===s?' selected':'')+'>'+s+'</option>';}).join('');
+    h += '<div class="fg" style="margin:0;flex:1;min-width:160px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Status</label>';
+    h += '<select onchange="rptF.status=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">'+stOpts+'</select></div>';
+  }
+  if (fields.indexOf('portal') > -1) {
+    var pOpts = '<option value="">Todos portais</option>'+['WebMotors','OLX','Mercado Livre','Revenda Mais','Chaves na Mao','BV Pista','C6 UsadosBR','Instagram','WhatsApp','Indicacao','Outro'].map(function(p){return '<option value="'+p+'"'+(rptF.portal===p?' selected':'')+'>'+p+'</option>';}).join('');
+    h += '<div class="fg" style="margin:0;flex:1;min-width:160px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Portal</label>';
+    h += '<select onchange="rptF.portal=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">'+pOpts+'</select></div>';
+  }
+  if (fields.indexOf('employee') > -1) {
+    var eOpts = '<option value="">Todos funcionarios</option>'+DB.employees.map(function(e){return '<option value="'+e.name+'"'+(rptF.employee===e.name?' selected':'')+'>'+e.name+'</option>';}).join('');
+    h += '<div class="fg" style="margin:0;flex:1;min-width:160px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Funcionario</label>';
+    h += '<select onchange="rptF.employee=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">'+eOpts+'</select></div>';
+  }
+  if (fields.indexOf('plate') > -1) {
+    var plOpts = '<option value="">Todos os veiculos</option>'+DB.vehicles.map(function(v){return '<option value="'+v.id+'"'+(rptF.plate==v.id?' selected':'')+'>'+v.plate+' - '+v.brand+' '+v.model+'</option>';}).join('');
+    h += '<div class="fg" style="margin:0;flex:1;min-width:200px"><label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Veiculo</label>';
+    h += '<select onchange="rptF.plate=this.value;rReports()" style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">'+plOpts+'</select></div>';
+  }
+
+  // Clear filters + Print buttons
+  h += '<button class="btn btns" onclick="rptF={dateFrom:\'\',dateTo:\'\',seller:\'\',status:\'\',portal:\'\',employee:\'\',plate:\'\'};rReports()" style="white-space:nowrap">Limpar</button>';
+  h += '<button class="btn btnp" onclick="printReport(\'rpt-content\')" style="white-space:nowrap">Imprimir / PDF</button>';
+  h += '</div>';
+  return h;
+}
+
+function inDateRange(dateStr) {
+  if (!rptF.dateFrom && !rptF.dateTo) return true;
+  if (!dateStr) return false;
+  if (rptF.dateFrom && dateStr < rptF.dateFrom) return false;
+  if (rptF.dateTo && dateStr > rptF.dateTo) return false;
+  return true;
+}
 
 function rReports() {
   if (!isG()) { document.getElementById('p-reports').innerHTML = '<div class="lockscr"><p>Acesso restrito ao gestor.</p></div>'; return; }
 
   var h = '<div class="ph"><div><h2 class="ptitle">Relatorios</h2><p class="psub">Exporte e analise os dados da Auto Money</p></div></div>';
-
   h += '<div class="tpills">';
-  var tabs = [
-    ['estoque','Estoque'],['veiculo','Por Veiculo'],['vendas','Vendas'],['financeiro','Financeiro'],
-    ['comissoes','Comissoes'],['leads','Leads'],['funcionarios','Funcionarios']
-  ];
+  var tabs = [['estoque','Estoque'],['veiculo','Por Veiculo'],['vendas','Vendas'],['financeiro','Financeiro'],['comissoes','Comissoes'],['leads','Leads'],['funcionarios','Funcionarios']];
   tabs.forEach(function(t) {
-    h += '<button class="tpill'+(rptTab===t[0]?' active':'')+'" onclick="rptTab=\''+t[0]+'\';rReports()">'+t[1]+'</button>';
+    h += '<button class="tpill'+(rptTab===t[0]?' active':'')+'" onclick="rptTab=\''+t[0]+'\';rptF={dateFrom:\'\',dateTo:\'\',seller:\'\',status:\'\',portal:\'\',employee:\'\',plate:\'\'};rReports()">'+t[1]+'</button>';
   });
   h += '</div>';
 
+  // ---- ESTOQUE ----
   if (rptTab === 'estoque') {
-    var avail = DB.vehicles.filter(function(v){return v.status==='Disponivel';});
-    var prep  = DB.vehicles.filter(function(v){return v.status==='Em Preparacao';});
-    var ann   = DB.vehicles.filter(function(v){return v.status==='Anunciado';});
-    var sold  = DB.vehicles.filter(function(v){return v.status==='Vendido';});
-    var totalVal = DB.vehicles.reduce(function(a,v){return a+(v.status!=='Vendido'?v.saleValue:0);},0);
-    var totalExp = DB.vehicles.reduce(function(a,v){return a+v.expenses;},0);
-
-    h += '<div class="sg" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">';
-    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+avail.length+'</div><div class="slbl">Disponiveis</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+prep.length+'</div><div class="slbl">Em Preparacao</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+ann.length+'</div><div class="slbl">Anunciados</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#94a3b820"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+sold.length+'</div><div class="slbl">Vendidos</div></div></div>';
+    h += fltBar(['dateFrom','dateTo','status']);
+    var list = DB.vehicles.filter(function(v){
+      return (!rptF.status || v.status === rptF.status) && inDateRange(v.created_at ? v.created_at.split('T')[0] : '');
+    });
+    // if no date range use all
+    if (!rptF.dateFrom && !rptF.dateTo) list = DB.vehicles.filter(function(v){ return !rptF.status || v.status===rptF.status; });
+    var totalVal = list.reduce(function(a,v){return a+(v.status!=='Vendido'?v.saleValue:0);},0);
+    var counts = {};
+    ['Disponivel','Em Preparacao','Anunciado','Vendido'].forEach(function(s){ counts[s]=list.filter(function(v){return v.status===s;}).length; });
+    h += '<div class="sg" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">';
+    var stc2 = ['#22c55e','#f59e0b','#3b82f6','#94a3b8'];
+    ['Disponivel','Em Preparacao','Anunciado','Vendido'].forEach(function(s,i){
+      h += '<div class="scard"><div class="sicon" style="background:'+stc2[i]+'20"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="'+stc2[i]+'" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+counts[s]+'</div><div class="slbl">'+s+'</div></div></div>';
+    });
     h += '</div>';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-    h += '<div><span style="font-size:14px;color:#64748b">Valor total em estoque: <strong style="color:#22c55e">'+fmt(totalVal)+'</strong> &nbsp;|&nbsp; Despesas acumuladas: <strong style="color:#ef4444">'+fmt(totalExp)+'</strong></span></div>';
-    h += '<button class="btn btnp" onclick="printReport(\'relatorio-estoque\')">Imprimir / PDF</button></div>';
-    h += '<div id="relatorio-estoque" class="tw">';
+    h += '<div id="rpt-content" class="tw">';
     h += mkTable(['Placa','Veiculo','Ano','Cor','Proprietario','Tipo Entrada','Valor Venda','Despesas','Status'],
-      DB.vehicles.map(function(v){
-        return {cells:['<strong>'+v.plate+'</strong>',v.brand+' '+v.model,v.year,v.color,v.ownerName,v.entryType,'<span style="color:#22c55e;font-weight:700">'+fmt(v.saleValue)+'</span>','<span style="color:#ef4444">'+fmt(v.expenses)+'</span>',vbk(v.status)],data:v};
-      })
+      list.map(function(v){ return {cells:['<strong>'+v.plate+'</strong>',v.brand+' '+v.model,v.year,v.color,v.ownerName,v.entryType,'<span style="color:#22c55e;font-weight:700">'+fmt(v.saleValue)+'</span>','<span style="color:#ef4444">'+fmt(v.expenses)+'</span>',vbk(v.status)],data:v}; })
     );
     h += '</div>';
   }
 
+  // ---- POR VEICULO ----
   else if (rptTab === 'veiculo') {
-    // Filter selector
-    var selPlate = window._rptPlate || '';
-    var plateOpts = '<option value="">Todos os veiculos</option>' + DB.vehicles.map(function(v){
-      return '<option value="'+v.id+'"'+(selPlate==v.id?' selected':'')+'>'+v.plate+' - '+v.brand+' '+v.model+' '+v.year+'</option>';
-    }).join('');
-
-    h += '<div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap">';
-    h += '<div class="fg" style="margin:0;flex:1;min-width:220px"><label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Selecionar Veiculo</label>';
-    h += '<select onchange="window._rptPlate=this.value;rReports()" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit">'+plateOpts+'</select></div>';
-    h += '<button class="btn btnp" onclick="printReport(\'relatorio-veiculo\')">Imprimir / PDF</button>';
-    h += '</div>';
-
-    var veiculos = selPlate ? DB.vehicles.filter(function(v){return v.id==selPlate;}) : DB.vehicles;
-
-    h += '<div id="relatorio-veiculo">';
+    h += fltBar(['plate']);
+    var veiculos = rptF.plate ? DB.vehicles.filter(function(v){return v.id==rptF.plate;}) : DB.vehicles;
+    h += '<div id="rpt-content">';
     veiculos.forEach(function(v) {
-      // Find sale for this vehicle
       var sale = DB.sales.find(function(s){return s.vehicleId==v.id;});
       var buyer = sale ? DB.clients.find(function(c){return c.id==sale.clientId;}) : null;
-
-      // Calculate profit
       var totalGasto = Number(v.expenses||0);
       var lucro = sale ? (sale.saleValue - v.entryValue - totalGasto) : (v.saleValue - v.entryValue - totalGasto);
-      var margem = v.entryValue > 0 ? ((lucro / v.entryValue) * 100).toFixed(1) : 0;
-
+      var margem = v.entryValue > 0 ? ((lucro/v.entryValue)*100).toFixed(1) : 0;
       h += '<div style="background:white;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
-
-      // Header
       h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #22c55e">';
-      h += '<div>';
-      h += '<div style="font-size:20px;font-weight:800;color:#1e293b">'+v.brand+' '+v.model+' '+v.year+'</div>';
-      h += '<div style="font-size:14px;color:#64748b;margin-top:4px">Placa: <strong>'+v.plate+'</strong> &nbsp;|&nbsp; Cor: '+v.color+' &nbsp;|&nbsp; KM: '+(v.mileage||'-')+'</div>';
-      h += '<div style="font-size:13px;color:#64748b;margin-top:2px">Chassi: '+(v.chassis||'-')+' &nbsp;|&nbsp; RENAVAM: '+(v.renavam||'-')+'</div>';
-      h += '</div>';
+      h += '<div><div style="font-size:20px;font-weight:800">'+v.brand+' '+v.model+' '+v.year+'</div>';
+      h += '<div style="font-size:14px;color:#64748b;margin-top:4px">Placa: <strong>'+v.plate+'</strong> | Cor: '+v.color+' | KM: '+(v.mileage||'-')+'</div>';
+      h += '<div style="font-size:13px;color:#64748b;margin-top:2px">Chassi: '+(v.chassis||'-')+' | RENAVAM: '+(v.renavam||'-')+'</div></div>';
       h += '<div>'+vbk(v.status)+'</div></div>';
-
-      // Info grid
-      h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">';
-      h += '<div style="background:#f8fafc;padding:12px;border-radius:8px"><div style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700">Proprietario</div><div style="font-size:14px;font-weight:700;margin-top:4px">'+v.ownerName+'</div><div style="font-size:12px;color:#94a3b8">'+v.owner+'</div></div>';
-      h += '<div style="background:#f8fafc;padding:12px;border-radius:8px"><div style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700">Tipo Entrada</div><div style="font-size:14px;font-weight:700;margin-top:4px">'+v.entryType+'</div></div>';
-      h += '<div style="background:#dbeafe;padding:12px;border-radius:8px"><div style="font-size:11px;color:#1d4ed8;text-transform:uppercase;font-weight:700">Valor Entrada</div><div style="font-size:14px;font-weight:700;margin-top:4px;color:#1d4ed8">'+fmt(v.entryValue)+'</div></div>';
-      h += '<div style="background:#f0fdf4;padding:12px;border-radius:8px"><div style="font-size:11px;color:#15803d;text-transform:uppercase;font-weight:700">Valor Venda</div><div style="font-size:14px;font-weight:700;margin-top:4px;color:#15803d">'+fmt(sale?sale.saleValue:v.saleValue)+'</div></div>';
+      h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">';
+      h += '<div style="background:#f8fafc;padding:12px;border-radius:8px"><div style="font-size:11px;color:#64748b;font-weight:700">PROPRIETARIO</div><div style="font-size:14px;font-weight:700;margin-top:4px">'+v.ownerName+'</div><div style="font-size:12px;color:#94a3b8">'+v.owner+'</div></div>';
+      h += '<div style="background:#f8fafc;padding:12px;border-radius:8px"><div style="font-size:11px;color:#64748b;font-weight:700">ENTRADA</div><div style="font-size:14px;font-weight:700;margin-top:4px">'+v.entryType+'</div></div>';
+      h += '<div style="background:#dbeafe;padding:12px;border-radius:8px"><div style="font-size:11px;color:#1d4ed8;font-weight:700">VALOR ENTRADA</div><div style="font-size:14px;font-weight:700;margin-top:4px;color:#1d4ed8">'+fmt(v.entryValue)+'</div></div>';
+      h += '<div style="background:#f0fdf4;padding:12px;border-radius:8px"><div style="font-size:11px;color:#15803d;font-weight:700">VALOR VENDA</div><div style="font-size:14px;font-weight:700;margin-top:4px;color:#15803d">'+fmt(sale?sale.saleValue:v.saleValue)+'</div></div>';
       h += '</div>';
-
-      // Expenses breakdown
-      h += '<div style="margin-bottom:20px">';
-      h += '<h4 style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:12px">Despesas do Veiculo</h4>';
-      h += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px">';
-      if (totalGasto > 0) {
-        h += '<div style="display:flex;justify-content:space-between;align-items:center">';
-        h += '<span style="font-size:14px;color:#92400e">Total de despesas lancadas</span>';
-        h += '<span style="font-size:18px;font-weight:800;color:#c2410c">'+fmt(totalGasto)+'</span></div>';
-        h += '<div style="font-size:12px;color:#94a3b8;margin-top:8px">* Para adicionar despesas especificas por veiculo, use o modulo Financeiro</div>';
-      } else {
-        h += '<div style="text-align:center;color:#94a3b8;font-size:14px">Nenhuma despesa lancada para este veiculo</div>';
-      }
-      h += '</div></div>';
-
-      // Financial summary
-      h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
-      h += '<div style="background:#fee2e2;padding:14px;border-radius:8px;text-align:center"><div style="font-size:11px;color:#dc2626;text-transform:uppercase;font-weight:700">Custo Total</div><div style="font-size:18px;font-weight:800;color:#dc2626;margin-top:4px">'+fmt(Number(v.entryValue)+totalGasto)+'</div><div style="font-size:11px;color:#94a3b8">Entrada + Despesas</div></div>';
-      h += '<div style="background:'+(lucro>=0?'#f0fdf4':'#fee2e2')+';padding:14px;border-radius:8px;text-align:center"><div style="font-size:11px;color:'+(lucro>=0?'#15803d':'#dc2626')+';text-transform:uppercase;font-weight:700">Lucro</div><div style="font-size:18px;font-weight:800;color:'+(lucro>=0?'#15803d':'#dc2626')+';margin-top:4px">'+fmt(lucro)+'</div><div style="font-size:11px;color:#94a3b8">Resultado</div></div>';
-      h += '<div style="background:#f0fdf4;padding:14px;border-radius:8px;text-align:center"><div style="font-size:11px;color:#15803d;text-transform:uppercase;font-weight:700">Margem</div><div style="font-size:18px;font-weight:800;color:#15803d;margin-top:4px">'+margem+'%</div><div style="font-size:11px;color:#94a3b8">Sobre o custo</div></div>';
+      h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">';
+      h += '<div style="background:#fee2e2;padding:14px;border-radius:8px;text-align:center"><div style="font-size:11px;color:#dc2626;font-weight:700">CUSTO TOTAL</div><div style="font-size:18px;font-weight:800;color:#dc2626;margin-top:4px">'+fmt(Number(v.entryValue)+totalGasto)+'</div><div style="font-size:11px;color:#94a3b8">Entrada + Despesas</div></div>';
+      h += '<div style="background:'+(lucro>=0?'#f0fdf4':'#fee2e2')+';padding:14px;border-radius:8px;text-align:center"><div style="font-size:11px;color:'+(lucro>=0?'#15803d':'#dc2626')+';font-weight:700">LUCRO</div><div style="font-size:18px;font-weight:800;color:'+(lucro>=0?'#15803d':'#dc2626')+';margin-top:4px">'+fmt(lucro)+'</div></div>';
+      h += '<div style="background:#f0fdf4;padding:14px;border-radius:8px;text-align:center"><div style="font-size:11px;color:#15803d;font-weight:700">MARGEM</div><div style="font-size:18px;font-weight:800;color:#15803d;margin-top:4px">'+margem+'%</div></div>';
       h += '</div>';
-
-      // Sale info if sold
       if (sale) {
-        h += '<div style="background:#f8fafc;border-radius:8px;padding:16px">';
-        h += '<h4 style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:12px">Informacoes da Venda</h4>';
+        h += '<div style="background:#f8fafc;border-radius:8px;padding:16px"><h4 style="margin:0 0 12px;font-size:14px;font-weight:700">Informacoes da Venda</h4>';
         h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
-        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">Comprador</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(buyer?buyer.name:'-')+'</div></div>';
-        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">Data da Venda</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.saleDate+'</div></div>';
-        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">Vendedor</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.seller+'</div></div>';
-        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">Pagamento</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.payMethod+'</div></div>';
-        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">Transferencia</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.transferType+'</div></div>';
-        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">Comissao Vendedor</div><div style="font-size:14px;font-weight:600;margin-top:2px;color:#22c55e">'+fmt(sale.commission)+'</div></div>';
+        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">COMPRADOR</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(buyer?buyer.name:'-')+'</div></div>';
+        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">DATA VENDA</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.saleDate+'</div></div>';
+        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">VENDEDOR</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.seller+'</div></div>';
+        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">PAGAMENTO</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.payMethod+'</div></div>';
+        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">TRANSFERENCIA</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+sale.transferType+'</div></div>';
+        h += '<div><div style="font-size:11px;color:#64748b;font-weight:700">COMISSAO</div><div style="font-size:14px;font-weight:600;margin-top:2px;color:#22c55e">'+fmt(sale.commission)+'</div></div>';
         h += '</div></div>';
       }
-
-      h += '</div>'; // end card
+      h += '</div>';
     });
-    h += '</div>'; // end relatorio-veiculo
+    h += '</div>';
   }
 
+  // ---- VENDAS ----
   else if (rptTab === 'vendas') {
-    var totalRev = DB.sales.reduce(function(a,s){return a+s.saleValue;},0);
-    var totalComm = DB.sales.reduce(function(a,s){return a+s.commission;},0);
-    h += '<div class="sg" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">';
-    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+DB.sales.length+'</div><div class="slbl">Total de Vendas</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalRev)+'</div><div class="slbl">Receita Total</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalComm)+'</div><div class="slbl">Total Comissoes</div></div></div>';
+    h += fltBar(['dateFrom','dateTo','seller']);
+    var sales2 = DB.sales.filter(function(s){
+      return inDateRange(s.saleDate) && (!rptF.seller || s.seller===rptF.seller);
+    });
+    var totalRev2 = sales2.reduce(function(a,s){return a+s.saleValue;},0);
+    var totalComm2 = sales2.reduce(function(a,s){return a+s.commission;},0);
+    h += '<div class="sg" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">';
+    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+sales2.length+'</div><div class="slbl">Vendas</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalRev2)+'</div><div class="slbl">Receita</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalComm2)+'</div><div class="slbl">Comissoes</div></div></div>';
     h += '</div>';
-    h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btnp" onclick="printReport(\'relatorio-vendas\')">Imprimir / PDF</button></div>';
-    h += '<div id="relatorio-vendas" class="tw">';
+    h += '<div id="rpt-content" class="tw">';
     h += mkTable(['Data','Veiculo','Placa','Cliente','Vendedor','Pagamento','Valor','Comissao','Transferencia','Status'],
-      DB.sales.map(function(s){
+      sales2.map(function(s){
         var veh=DB.vehicles.find(function(v){return v.id===s.vehicleId;});
         var cli=DB.clients.find(function(c){return c.id===s.clientId;});
         return {cells:[s.saleDate,veh?veh.brand+' '+veh.model:'-',veh?veh.plate:'-',cli?cli.name:'-',s.seller,s.payMethod,'<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>','<span style="color:#22c55e;font-weight:700">'+fmt(s.commission)+'</span>',s.transferType,bk(s.status,s.status==='Concluido'?'bg':'bb')],data:s};
@@ -1334,120 +1353,100 @@ function rReports() {
     h += '</div>';
   }
 
+  // ---- FINANCEIRO ----
   else if (rptTab === 'financeiro') {
-    var totalIn  = DB.sales.reduce(function(a,s){return a+s.saleValue;},0);
-    var totalOut = DB.expenses.reduce(function(a,e){return a+e.value;},0);
-    var profit   = totalIn - totalOut;
-
-    h += '<div class="sg" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">';
-    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalIn)+'</div><div class="slbl">Total Entradas</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#ef444420"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="'+ICONS.financial+'"/></svg></div><div><div class="sval">'+fmt(totalOut)+'</div><div class="slbl">Total Saidas</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:'+(profit>=0?'#22c55e':'#ef4444')+'20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="'+(profit>=0?'#22c55e':'#ef4444')+'" stroke-width="2"><path d="'+ICONS.dashboard+'"/></svg></div><div><div class="sval" style="color:'+(profit>=0?'#22c55e':'#ef4444')+'">'+fmt(profit)+'</div><div class="slbl">Resultado</div></div></div>';
+    h += fltBar(['dateFrom','dateTo']);
+    var salesFin = DB.sales.filter(function(s){ return inDateRange(s.saleDate); });
+    var expFin   = DB.expenses.filter(function(e){ return inDateRange(e.date); });
+    var totalIn2  = salesFin.reduce(function(a,s){return a+s.saleValue;},0);
+    var totalOut2 = expFin.reduce(function(a,e){return a+e.value;},0);
+    var profit2   = totalIn2 - totalOut2;
+    h += '<div class="sg" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">';
+    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalIn2)+'</div><div class="slbl">Total Entradas</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#ef444420"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="'+ICONS.financial+'"/></svg></div><div><div class="sval">'+fmt(totalOut2)+'</div><div class="slbl">Total Saidas</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:'+(profit2>=0?'#22c55e':'#ef4444')+'20"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="'+(profit2>=0?'#22c55e':'#ef4444')+'" stroke-width="2"><path d="'+ICONS.dashboard+'"/></svg></div><div><div class="sval" style="color:'+(profit2>=0?'#22c55e':'#ef4444')+'">'+fmt(profit2)+'</div><div class="slbl">Resultado</div></div></div>';
     h += '</div>';
-
-    h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btnp" onclick="printReport(\'relatorio-fin\')">Imprimir / PDF</button></div>';
-    h += '<div id="relatorio-fin">';
-
-    h += '<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1e293b">Entradas (Vendas)</h3>';
-    h += '<div class="tw" style="margin-bottom:24px">';
+    h += '<div id="rpt-content">';
+    h += '<h3 style="font-size:15px;font-weight:700;margin-bottom:10px;color:#1e293b">Entradas (Vendas)</h3>';
+    h += '<div class="tw" style="margin-bottom:20px">';
     h += mkTable(['Data','Veiculo','Forma Pagamento','Valor'],
-      DB.sales.map(function(s){
-        var veh=DB.vehicles.find(function(v){return v.id===s.vehicleId;});
-        return {cells:[s.saleDate,veh?veh.brand+' '+veh.model:'-',s.payMethod,'<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>'],data:s};
-      })
-    );
+      salesFin.map(function(s){var veh=DB.vehicles.find(function(v){return v.id===s.vehicleId;});return {cells:[s.saleDate,veh?veh.brand+' '+veh.model:'-',s.payMethod,'<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>'],data:s};}));
     h += '</div>';
-
-    h += '<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1e293b">Saidas (Despesas)</h3>';
+    h += '<h3 style="font-size:15px;font-weight:700;margin-bottom:10px;color:#1e293b">Saidas (Despesas)</h3>';
     h += '<div class="tw">';
     h += mkTable(['Data','Categoria','Descricao','Tipo','Valor','Status'],
-      DB.expenses.map(function(e){
-        return {cells:[e.date,e.cat,e.desc,e.type,'<span style="color:#ef4444;font-weight:700">'+fmt(e.value)+'</span>',bk(e.paid,e.paid==='Pago'?'bg':'by')],data:e};
-      })
-    );
+      expFin.map(function(e){return {cells:[e.date,e.cat,e.desc,e.type,'<span style="color:#ef4444;font-weight:700">'+fmt(e.value)+'</span>',bk(e.paid,e.paid==='Pago'?'bg':'by')],data:e};}));
     h += '</div></div>';
   }
 
+  // ---- COMISSOES ----
   else if (rptTab === 'comissoes') {
-    h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btnp" onclick="printReport(\'relatorio-comm\')">Imprimir / PDF</button></div>';
-    h += '<div id="relatorio-comm">';
-    DB.employees.filter(function(e){return e.role==='Gestor'||e.role==='Gestora'||e.role==='Vendedor';}).forEach(function(emp) {
-      var empSales = DB.sales.filter(function(s){return s.seller===emp.name;});
-      var totalComm = empSales.reduce(function(a,s){return a+s.commission;},0);
-      var totalSales = empSales.reduce(function(a,s){return a+s.saleValue;},0);
+    h += fltBar(['dateFrom','dateTo','seller']);
+    h += '<div id="rpt-content">';
+    var sellers3 = DB.employees.filter(function(e){return e.role==='Gestor'||e.role==='Gestora'||e.role==='Vendedor';});
+    if (rptF.seller) sellers3 = sellers3.filter(function(e){return e.name===rptF.seller;});
+    sellers3.forEach(function(emp) {
+      var empSales = DB.sales.filter(function(s){return s.seller===emp.name && inDateRange(s.saleDate);});
+      var totalC = empSales.reduce(function(a,s){return a+s.commission;},0);
+      var totalV = empSales.reduce(function(a,s){return a+s.saleValue;},0);
+      var rc={'Gestor':'bg','Gestora':'bg','Vendedor':'bb'};
       h += '<div style="background:white;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-      h += '<div style="display:flex;align-items:center;gap:12px">';
-      h += '<div style="width:44px;height:44px;border-radius:50%;background:#22c55e20;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#22c55e">'+emp.name[0]+'</div>';
-      h += '<div><div style="font-size:16px;font-weight:800">'+emp.name+'</div><div style="font-size:13px;color:#64748b">'+emp.role+' | '+empSales.length+' vendas | Total: '+fmt(totalSales)+'</div></div></div>';
-      h += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:#22c55e">'+fmt(totalComm)+'</div><div style="font-size:12px;color:#64748b">Total comissoes</div></div></div>';
+      h += '<div style="display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;border-radius:50%;background:#22c55e20;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#22c55e">'+emp.name[0]+'</div>';
+      h += '<div><div style="font-size:16px;font-weight:800">'+emp.name+'</div><div style="font-size:13px;color:#64748b">'+emp.role+' | '+empSales.length+' vendas | '+fmt(totalV)+'</div></div></div>';
+      h += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:#22c55e">'+fmt(totalC)+'</div><div style="font-size:12px;color:#64748b">Total comissoes</div></div></div>';
       if (empSales.length > 0) {
         h += mkTable(['Data','Veiculo','Valor Venda','Comissao','Status'],
-          empSales.map(function(s){
-            var veh=DB.vehicles.find(function(v){return v.id===s.vehicleId;});
-            return {cells:[s.saleDate,veh?veh.brand+' '+veh.model+' - '+veh.plate:'-','<span style="font-weight:700">'+fmt(s.saleValue)+'</span>','<span style="color:#22c55e;font-weight:700">'+fmt(s.commission)+'</span>',bk(s.status,s.status==='Concluido'?'bg':'bb')],data:s};
-          })
-        );
+          empSales.map(function(s){var veh=DB.vehicles.find(function(v){return v.id===s.vehicleId;});return {cells:[s.saleDate,veh?veh.brand+' '+veh.model+' - '+veh.plate:'-','<strong>'+fmt(s.saleValue)+'</strong>','<span style="color:#22c55e;font-weight:700">'+fmt(s.commission)+'</span>',bk(s.status,s.status==='Concluido'?'bg':'bb')],data:s};}));
       } else {
-        h += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda registrada</p>';
+        h += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda no periodo</p>';
       }
       h += '</div>';
     });
     h += '</div>';
   }
 
+  // ---- LEADS ----
   else if (rptTab === 'leads') {
-    var byPortal = {};
-    DB.leads.forEach(function(l){byPortal[l.portal]=(byPortal[l.portal]||0)+1;});
-    var byStatus2 = {};
-    DB.leads.forEach(function(l){byStatus2[l.status]=(byStatus2[l.status]||0)+1;});
-
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">';
-    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb"><h3 style="font-size:15px;font-weight:700;margin-bottom:14px">Por Portal</h3>';
-    Object.keys(byPortal).forEach(function(p){
-      var pct = DB.leads.length ? (byPortal[p]/DB.leads.length*100) : 0;
-      h += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+p+'</span><strong>'+byPortal[p]+'</strong></div><div class="pb"><div class="pf" style="width:'+pct+'%;background:#3b82f6"></div></div></div>';
-    });
+    h += fltBar(['dateFrom','dateTo','portal']);
+    var leads2 = DB.leads.filter(function(l){ return inDateRange(l.date) && (!rptF.portal || l.portal===rptF.portal); });
+    var byP = {}; leads2.forEach(function(l){byP[l.portal]=(byP[l.portal]||0)+1;});
+    var byS2 = {}; leads2.forEach(function(l){byS2[l.status]=(byS2[l.status]||0)+1;});
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+    h += '<div style="background:white;border-radius:12px;padding:16px;border:1px solid #e5e7eb"><h4 style="margin:0 0 12px;font-size:14px;font-weight:700">Por Portal</h4>';
+    Object.keys(byP).forEach(function(p){var pct=leads2.length?(byP[p]/leads2.length*100):0;h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>'+p+'</span><strong>'+byP[p]+'</strong></div><div class="pb"><div class="pf" style="width:'+pct+'%;background:#3b82f6"></div></div></div>';});
     h += '</div>';
-    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb"><h3 style="font-size:15px;font-weight:700;margin-bottom:14px">Por Status</h3>';
-    var sc={'Novo':'#22c55e','Em contato':'#3b82f6','Negociando':'#f59e0b','Agendado':'#8b5cf6','Convertido':'#94a3b8','Perdido':'#ef4444'};
-    Object.keys(byStatus2).forEach(function(s){
-      var pct = DB.leads.length ? (byStatus2[s]/DB.leads.length*100) : 0;
-      h += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+s+'</span><strong>'+byStatus2[s]+'</strong></div><div class="pb"><div class="pf" style="width:'+pct+'%;background:'+(sc[s]||'#94a3b8')+'"></div></div></div>';
-    });
+    h += '<div style="background:white;border-radius:12px;padding:16px;border:1px solid #e5e7eb"><h4 style="margin:0 0 12px;font-size:14px;font-weight:700">Por Status</h4>';
+    var sc2={'Novo':'#22c55e','Em contato':'#3b82f6','Negociando':'#f59e0b','Agendado':'#8b5cf6','Convertido':'#94a3b8','Perdido':'#ef4444'};
+    Object.keys(byS2).forEach(function(s){var pct=leads2.length?(byS2[s]/leads2.length*100):0;h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>'+s+'</span><strong>'+byS2[s]+'</strong></div><div class="pb"><div class="pf" style="width:'+pct+'%;background:'+(sc2[s]||'#94a3b8')+'"></div></div></div>';});
     h += '</div></div>';
-
-    h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btnp" onclick="printReport(\'relatorio-leads\')">Imprimir / PDF</button></div>';
-    h += '<div id="relatorio-leads" class="tw">';
-    h += mkTable(['Data','Cliente','Telefone','Interesse','Portal','Status','Observacoes'],
-      DB.leads.map(function(l){return {cells:[l.date,'<strong>'+l.name+'</strong>',l.phone,l.interest,bk(l.portal,'bb'),lbk(l.status),l.notes||'-'],data:l};})
-    );
+    h += '<div id="rpt-content" class="tw">';
+    h += mkTable(['Data','Cliente','Telefone','Interesse','Portal','Status','Obs'],
+      leads2.map(function(l){return {cells:[l.date,'<strong>'+l.name+'</strong>',l.phone,l.interest,bk(l.portal,'bb'),lbk(l.status),l.notes||'-'],data:l};}));
     h += '</div>';
   }
 
+  // ---- FUNCIONARIOS ----
   else if (rptTab === 'funcionarios') {
-    h += '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btnp" onclick="printReport(\'relatorio-func\')">Imprimir / PDF</button></div>';
-    h += '<div id="relatorio-func">';
-    DB.employees.forEach(function(emp) {
-      var logs = DB.payLogs.filter(function(l){return l.emp===emp.name;});
-      var total = logs.reduce(function(a,l){return a+l.value;},0);
-      var rc = {'Gestor':'bg','Gestora':'bg','Consignadora':'bpu','Vendedor':'bb','Preparador':'bgr'};
+    h += fltBar(['dateFrom','dateTo','employee']);
+    var emps2 = DB.employees;
+    if (rptF.employee) emps2 = emps2.filter(function(e){return e.name===rptF.employee;});
+    h += '<div id="rpt-content">';
+    emps2.forEach(function(emp) {
+      var logs2 = DB.payLogs.filter(function(l){return l.emp===emp.name && inDateRange(l.date);});
+      var tot2 = logs2.reduce(function(a,l){return a+l.value;},0);
+      var rc2={'Gestor':'bg','Gestora':'bg','Consignadora':'bpu','Vendedor':'bb','Preparador':'bgr'};
+      var tc2={'Salario':'bb','Aj.Custo':'bgr','Comissao':'bg','Retirada':'by','Vale':'bo','Outros':'bgr'};
       h += '<div style="background:white;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-      h += '<div style="display:flex;align-items:center;gap:12px">';
-      h += '<div style="width:44px;height:44px;border-radius:50%;background:#22c55e20;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#22c55e">'+emp.name[0]+'</div>';
-      h += '<div><div style="font-size:16px;font-weight:800">'+emp.name+'</div>'+bk(emp.role,rc[emp.role]||'bgr')+'</div></div>';
-      h += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:#22c55e">'+fmt(total)+'</div><div style="font-size:12px;color:#64748b">Total recebido</div></div></div>';
-      if (logs.length > 0) {
-        var tc={'Salario':'bb','Aj.Custo':'bgr','Comissao':'bg','Retirada':'by','Vale':'bo','Outros':'bgr'};
+      h += '<div style="display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;border-radius:50%;background:#22c55e20;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#22c55e">'+emp.name[0]+'</div>';
+      h += '<div><div style="font-size:16px;font-weight:800">'+emp.name+'</div>'+bk(emp.role,rc2[emp.role]||'bgr')+'</div></div>';
+      h += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:#22c55e">'+fmt(tot2)+'</div><div style="font-size:12px;color:#64748b">Total recebido</div></div></div>';
+      if (logs2.length > 0) {
         h += mkTable(['Data','Descricao','Tipo','Valor'],
-          logs.slice().sort(function(a,b){return b.date.localeCompare(a.date);}).map(function(l){
-            var p=l.date.split('-');
-            return {cells:[p[2]+'/'+p[1]+'/'+p[0],l.desc,bk(l.type,tc[l.type]||'bgr'),'<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>'],data:l};
-          })
-        );
+          logs2.slice().sort(function(a,b){return b.date.localeCompare(a.date);}).map(function(l){var p=l.date.split('-');return {cells:[p[2]+'/'+p[1]+'/'+p[0],l.desc,bk(l.type,tc2[l.type]||'bgr'),'<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>'],data:l};}));
       } else {
-        h += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhum lancamento registrado</p>';
+        h += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhum lancamento no periodo</p>';
       }
       h += '</div>';
     });
@@ -1456,40 +1455,6 @@ function rReports() {
 
   document.getElementById('p-reports').innerHTML = h;
 }
-
-function printReport(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  var css = [
-    'body{font-family:Segoe UI,sans-serif;color:#1e293b;padding:20px;}',
-    'table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px;}',
-    'th{background:#f8fafc;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e5e7eb;}',
-    'td{padding:10px 12px;border-bottom:1px solid #f1f5f9;}',
-    'h3,h4{margin:20px 0 10px;}',
-    '.bk{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}',
-    '.bg{background:#dcfce7;color:#15803d;}',
-    '.by{background:#fef9c3;color:#854d0e;}',
-    '.bb{background:#dbeafe;color:#1d4ed8;}',
-    '.br{background:#fee2e2;color:#dc2626;}',
-    '.bgr{background:#f1f5f9;color:#475569;}',
-    '.bpu{background:#f3e8ff;color:#7e22ce;}',
-    '.bo{background:#ffedd5;color:#c2410c;}',
-    '@media print{button{display:none;}}'
-  ].join('');
-  var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #22c55e;padding-bottom:12px">'
-    + '<div><h2 style="margin:0;color:#1e293b">Auto Money CRM</h2>'
-    + '<p style="margin:4px 0 0;color:#64748b;font-size:13px">Gerado em: ' + new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR') + '</p></div>'
-    + '<div style="color:#22c55e;font-size:22px;font-weight:800">AUTO MONEY</div></div>';
-  var w = window.open('', '_blank');
-  w.document.open();
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Auto Money - Relatorio</title><style>' + css + '</style></head><body>');
-  w.document.write(header);
-  w.document.write(el.innerHTML);
-  w.document.write('<script>window.onload=function(){window.print();}<' + '/script>');
-  w.document.write('</body></html>');
-  w.document.close();
-}
-
 
 // ========== INIT ==========
 document.getElementById('btn-login').onclick = doLogin;
