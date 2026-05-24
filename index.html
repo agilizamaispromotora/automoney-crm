@@ -485,7 +485,7 @@ var DB = {
 };
 
 function isG() { return CUR.role === 'gestor'; }
-function fmt(v) { return 'R$ ' + Number(v || 0).toLocaleString('pt-BR'); }
+function fmt(v) { return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function calcComm(v) { v = Number(v); return v <= 50000 ? 500 : v * 0.01; }
 function td() { return new Date().toISOString().split('T')[0]; }
 function fmtD(d) { if (!d) return ''; var p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
