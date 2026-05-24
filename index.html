@@ -688,11 +688,11 @@ function buildNav() {
   var h = '';
   NAV.forEach(function(n) {
     var ok = isG() || n.roles.indexOf(CUR.role) > -1;
+    if (!ok) return; // hide restricted items completely
     var ac = CUR.page === n.id ? ' active' : '';
-    var fn = ok ? 'showPage(\'' + n.id + '\')' : '';
-    h += '<button class="nitem' + ac + '" onclick="' + fn + '" title="' + n.label + '">';
+    h += '<button class="nitem' + ac + '" onclick="showPage(\'' + n.id + '\')" title="' + n.label + '">';
     h += svgIcon(n.id, 18);
-    h += '<span class="nlabel">' + n.label + (ok ? '' : ' (restrito)') + '</span>';
+    h += '<span class="nlabel">' + n.label + '</span>';
     h += '</button>';
   });
   document.getElementById('nav-items').innerHTML = h;
