@@ -2699,9 +2699,9 @@ function checkMonthlyPayroll() {
   var mesAno = now.getFullYear() + '-' + (String(now.getMonth()+1).padStart(2,'0'));
   var mesLabel = String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear();
 
-  Object.keys(USERS).forEach(function(name) {
-    var u = USERS[name];
-    if (!u.salario && !u.ajuda) return;
+  DB.employees.forEach(function(emp) {
+    var name = emp.name;
+    if (!emp.salary && !emp.benefit) return;
 
     // Check if salary already launched this month
     var jaTemSal = DB.payLogs.some(function(l){
@@ -2711,8 +2711,8 @@ function checkMonthlyPayroll() {
       return l.emp === name && l.type === 'Aj.Custo' && l.date && l.date.indexOf(mesAno) === 0;
     });
 
-    if (!jaTemSal && u.salario > 0) {
-      var salLog = { emp: name, date: mesAno+'-01', desc: 'Salario ' + mesLabel, value: u.salario, type: 'Salario', status: 'Pendente' };
+    if (!jaTemSal && emp.salary > 0) {
+      var salLog = { emp: name, date: mesAno+'-01', desc: 'Salario ' + mesLabel, value: emp.salary, type: 'Salario', status: 'Pendente' };
       if (supaConfigured()) {
         supaInsert('payment_logs', { employee_name: name, date: salLog.date, description: salLog.desc, value: salLog.value, type: 'Salario' }).then(function(r){
           var saved = Array.isArray(r)?r[0]:r;
@@ -2725,8 +2725,8 @@ function checkMonthlyPayroll() {
       }
     }
 
-    if (!jaTemAjuda && u.ajuda > 0) {
-      var ajLog = { emp: name, date: mesAno+'-01', desc: 'Aj.Custo ' + mesLabel, value: u.ajuda, type: 'Aj.Custo', status: 'Pendente' };
+    if (!jaTemAjuda && emp.benefit > 0) {
+      var ajLog = { emp: name, date: mesAno+'-01', desc: 'Aj.Custo ' + mesLabel, value: emp.benefit, type: 'Aj.Custo', status: 'Pendente' };
       if (supaConfigured()) {
         supaInsert('payment_logs', { employee_name: name, date: ajLog.date, description: ajLog.desc, value: ajLog.value, type: 'Aj.Custo' }).then(function(r){
           var saved = Array.isArray(r)?r[0]:r;
