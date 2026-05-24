@@ -485,7 +485,7 @@ var DB = {
 };
 
 function isG() { return CUR.role === 'gestor'; }
-function fmt(v) { return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmt(v) { var n = parseFloat(String(v||0).replace(',','.')); if(isNaN(n)) n=0; return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function calcComm(v) { v = Number(v); return v <= 50000 ? 500 : v * 0.01; }
 function td() { return new Date().toISOString().split('T')[0]; }
 function fmtD(d) { if (!d) return ''; var p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
@@ -640,7 +640,6 @@ function openModal(html, size, setupFn) {
   d.className = 'modal-bg';
   d.id = 'modal-bg';
   d.innerHTML = '<div class="modal ' + (size || 'modal-md') + '">' + html + '</div>';
-  d.addEventListener('click', function(e) { if (e.target === d) closeModal(); });
   document.getElementById('modal-wrap').innerHTML = '';
   document.getElementById('modal-wrap').appendChild(d);
   if (setupFn) setTimeout(setupFn, 50);
@@ -794,9 +793,16 @@ function openVehModal(id) {
   });
 }
 function saveVeh(id) {
-  var brand = gv('vbrand'), model = gv('vmodel-sel') || gv('vmodel'), plate = gv('vplate');
+  var brand = gv('vbrand');
+  var model = gv('vmodel-sel');
+  var plate = gv('vplate');
+  // If editing, keep original brand/model if not changed
+  var orig = id ? DB.vehicles.find(function(v){ return v.id == id; }) : null;
+  if (!brand && orig) brand = orig.brand;
+  if (!model && orig) model = orig.model;
   if (!brand) { alert('Selecione a marca.'); return; }
-  if (!model) { model = brand; } // fallback if model not selected
+  if (!model) model = brand;
+  if (!plate) { alert('Informe a placa.'); return; }
   if (!brand || !model || !plate) { alert('Preencha os campos obrigatorios.'); return; }
   var obj = { brand:brand, model:model||gv('vmodel'), year:Number(gv('vyear')), plate:plate.toUpperCase(), color:gv('vcolor'), chassis:gv('vchassi'), renavam:gv('vrenavam'), owner:gv('vowner'), ownerName:gv('vowner2'), entryValue:Number(gv('ventry')), saleValue:Number(gv('vsale')), entryType:gv('vetype'), status:gv('vstatus'), mileage:Number(gv('vmil')), expenses: id ? (DB.vehicles.find(function(v){return v.id==id;})||{}).expenses||0 : 0 };
   if (supaConfigured()) {
