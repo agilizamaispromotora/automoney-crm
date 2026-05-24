@@ -1120,11 +1120,13 @@ function onPayMethod(rowId, method) {
   detDiv.innerHTML = '';
 
   if (method === 'Financiamento') {
-    detDiv.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">'
-      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Banco</label><input type="text" id="pb-'+rowId+'" placeholder="Ex: Santander" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+    detDiv.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:4px">'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Banco</label><input type="text" id="pb-'+rowId+'" placeholder="Ex: Santander" oninput="window._bankName=this.value" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
       + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Prazo (meses)</label><input type="text" id="pp-'+rowId+'" placeholder="Ex: 60" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
       + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Parcela R$</label><input type="text" id="ppa-'+rowId+'" placeholder="Ex: 1500" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
-      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Retorno Loja R$</label><input type="text" id="prt-'+rowId+'" placeholder="Comissao banco" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Retorno % (sobre financiado)</label>'
+      + '<input type="text" id="prt-'+rowId+'" placeholder="Ex: 3" oninput="calcRetorno('+rowId+',this.value)" style="width:100%;padding:7px;border:1.5px solid #3b82f6;border-radius:6px;font-size:12px;font-family:inherit"/>'
+      + '<div id="prt-val-'+rowId+'" style="font-size:11px;color:#1d4ed8;margin-top:3px;font-weight:600"></div></div>'
       + '</div>';
   } else if (method === 'Carro na Troca') {
     detDiv.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">'
@@ -1150,6 +1152,17 @@ function removePayRow(rowId) {
   updateSaldo();
 }
 
+
+
+function calcRetorno(rowId, pct) {
+  var pvEl = document.getElementById('pv-' + rowId);
+  var finVal = pvEl ? parseFloat(String(pvEl.value||0).replace(',','.')) || 0 : 0;
+  var p = parseFloat(String(pct||0).replace(',','.')) || 0;
+  var retorno = finVal * p / 100;
+  window._bankRetorno = retorno;
+  var dispEl = document.getElementById('prt-val-' + rowId);
+  if (dispEl) dispEl.textContent = retorno > 0 ? 'Retorno: ' + fmt(retorno) : '';
+}
 
 function syncTroca(rowId, val) {
   var pvEl = document.getElementById('pv-' + rowId);
@@ -1180,7 +1193,9 @@ function saveSale2() {
     var bank = document.getElementById('pb-'+r.id) ? document.getElementById('pb-'+r.id).value : '';
     var prazo = document.getElementById('pp-'+r.id) ? document.getElementById('pp-'+r.id).value : '';
     var parcela = document.getElementById('ppa-'+r.id) ? document.getElementById('ppa-'+r.id).value : '';
-    var retorno = document.getElementById('prt-'+r.id) ? document.getElementById('prt-'+r.id).value : '';
+    var retornoPct = document.getElementById('prt-'+r.id) ? document.getElementById('prt-'+r.id).value : '';
+    var retorno = retornoPct ? retornoPct + '%' : '';
+    if (bank) window._bankName = bank;
     var troca = document.getElementById('ptr-'+r.id) ? document.getElementById('ptr-'+r.id).value : '';
     var placa = document.getElementById('ppl-'+r.id) ? document.getElementById('ppl-'+r.id).value : '';
     if (bank) det += ' - ' + bank;
@@ -1216,12 +1231,55 @@ function saveSale2() {
       DB.sales.push(obj);
       supaUpdate('vehicles', vId, { status: 'Vendido' });
       DB.vehicles = DB.vehicles.map(function(v){ return v.id==vId ? Object.assign({},v,{status:'Vendido'}) : v; });
+      // Auto-create commission paylog for seller
+      if (obj.seller && obj.commission > 0) {
+        var veh2 = DB.vehicles.find(function(v){ return String(v.id)===String(vId); });
+        var commLog = {
+          employee_name: obj.seller,
+          date: obj.saleDate,
+          description: 'Comissao venda ' + (veh2 ? veh2.plate : '') + ' - PENDENTE',
+          value: obj.commission,
+          type: 'Comissao'
+        };
+        supaInsert('payment_logs', commLog).then(function(lr) {
+          var lsaved = Array.isArray(lr) ? lr[0] : lr;
+          var localLog = { id: lsaved ? lsaved.id : nextId(DB.payLogs), emp: obj.seller, date: obj.saleDate, desc: commLog.description, value: obj.commission, type: 'Comissao', status: 'Pendente' };
+          DB.payLogs.push(localLog);
+        });
+      }
+      // Auto-create bank return as income if retorno > 0
+      if (window._bankRetorno > 0) {
+        var veh3 = DB.vehicles.find(function(v){ return String(v.id)===String(vId); });
+        var retLog = {
+          category: 'Retorno Banco',
+          description: 'Retorno financiamento ' + (window._bankName||'') + ' - ' + (veh3 ? veh3.plate : ''),
+          value: window._bankRetorno,
+          date: obj.saleDate,
+          type: 'Retorno Banco',
+          paid: 'Pendente'
+        };
+        supaInsert('expenses', retLog).then(function(er) {
+          var esaved = Array.isArray(er) ? er[0] : er;
+          retLog.id = esaved ? esaved.id : nextId(DB.expenses);
+          retLog.cat = retLog.category; retLog.desc = retLog.description;
+          DB.expenses.push(retLog);
+        });
+      }
       closeModal(); rSales();
     });
   } else {
     obj.id = nextId(DB.sales);
     DB.sales.push(obj);
     DB.vehicles = DB.vehicles.map(function(v){ return v.id==vId ? Object.assign({},v,{status:'Vendido'}) : v; });
+    // Auto commission log
+    if (obj.seller && obj.commission > 0) {
+      var vehX = DB.vehicles.find(function(v){ return String(v.id)===String(vId); });
+      DB.payLogs.push({ id: nextId(DB.payLogs), emp: obj.seller, date: obj.saleDate, desc: 'Comissao venda ' + (vehX ? vehX.plate : '') + ' - PENDENTE', value: obj.commission, type: 'Comissao', status: 'Pendente' });
+    }
+    if (window._bankRetorno > 0) {
+      var vehY = DB.vehicles.find(function(v){ return String(v.id)===String(vId); });
+      DB.expenses.push({ id: nextId(DB.expenses), cat: 'Retorno Banco', desc: 'Retorno ' + (window._bankName||'') + ' - ' + (vehY ? vehY.plate : ''), value: window._bankRetorno, date: obj.saleDate, type: 'Retorno Banco', paid: 'Pendente' });
+    }
     closeModal(); rSales();
   }
 }
@@ -1230,8 +1288,57 @@ function saveSale2() {
 // ========== FINANCIAL ==========
 var finTab = 'saidas';
 var ECATS = ['Aluguel','Agua/Luz/Internet','Material Escritorio','Preparacao','Funcionarios','Aj. Custo','Comissao','Portal WebMotors','Portal OLX','Portal Mercado Livre','Portal BV Pista','Portal C6 UsadosBR','Portal Santander','Portal Pan MobiAuto','Portal Revenda Mais','Portal Chaves na Mao','Despachante','Pericia/Laudo','Oficina','Lataria/Pintura','Eletrica','Impressora','Outros'];
+
+function rFinancialPessoal() {
+  var myLogs = DB.payLogs.filter(function(l){ return l.emp === CUR.user; });
+  var pending = myLogs.filter(function(l){ return l.status === 'Pendente' || (l.desc && l.desc.indexOf('PENDENTE') > -1); });
+  var paid = myLogs.filter(function(l){ return l.status !== 'Pendente' && (!l.desc || l.desc.indexOf('PENDENTE') === -1); });
+  var totalPending = pending.reduce(function(a,l){ return a + l.value; }, 0);
+  var totalPaid = paid.reduce(function(a,l){ return a + l.value; }, 0);
+
+  var h = '<div class="ph"><div><h2 class="ptitle">Meu Financeiro</h2><p class="psub">Seus lancamentos — ' + CUR.user + '</p></div></div>';
+
+  h += '<div class="sg" style="grid-template-columns:repeat(2,1fr);margin-bottom:24px">';
+  h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval" style="color:#f59e0b">'+fmt(totalPending)+'</div><div class="slbl">A Receber (Pendente)</div></div></div>';
+  h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval" style="color:#22c55e">'+fmt(totalPaid)+'</div><div class="slbl">Ja Recebido</div></div></div>';
+  h += '</div>';
+
+  // A Receber
+  h += '<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#f59e0b">A Receber</h3>';
+  h += '<div class="tw" style="margin-bottom:20px">';
+  var tc = {'Salario':'bb','Aj.Custo':'bgr','Comissao':'bg','Retirada':'by','Vale':'bo','Outros':'bgr'};
+  if (pending.length === 0) {
+    h += '<div style="padding:24px;text-align:center;color:#94a3b8">Nenhum valor pendente</div>';
+  } else {
+    h += mkTable(['Data','Descricao','Tipo','Valor'],
+      pending.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).map(function(l){
+        var p = l.date.split('-');
+        return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type, tc[l.type]||'bgr'), '<span style="color:#f59e0b;font-weight:700">'+fmt(l.value)+'</span>'], data: l };
+      })
+    );
+  }
+  h += '</div>';
+
+  // Ja Recebido
+  h += '<h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#22c55e">Ja Recebido</h3>';
+  h += '<div class="tw">';
+  if (paid.length === 0) {
+    h += '<div style="padding:24px;text-align:center;color:#94a3b8">Nenhum lancamento pago</div>';
+  } else {
+    h += mkTable(['Data','Descricao','Tipo','Valor'],
+      paid.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).map(function(l){
+        var p = l.date.split('-');
+        return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type, tc[l.type]||'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>'], data: l };
+      })
+    );
+  }
+  h += '</div>';
+
+  document.getElementById('p-financial').innerHTML = h;
+}
+
 function rFinancial() {
-  if (!isG()) { document.getElementById('p-financial').innerHTML = '<div class="lockscr"><p>Acesso restrito ao gestor.</p></div>'; return; }
+  if (!isG()) { rFinancialPessoal(); return; }
   var rev = DB.sales.reduce(function(a,s) { return a + s.saleValue; }, 0);
   var exp = DB.expenses.reduce(function(a,e) { return a + e.value; }, 0);
   var h = '<div class="ph"><div><h2 class="ptitle">Financeiro</h2><p class="psub">Entradas, saidas e resultado</p></div></div>';
@@ -1744,7 +1851,7 @@ function rReports() {
       var logs2 = DB.payLogs.filter(function(l){return l.emp===emp.name && inDateRange(l.date);});
       var tot2 = logs2.reduce(function(a,l){return a+l.value;},0);
       var rc2={'Gestor':'bg','Gestora':'bg','Consignadora':'bpu','Vendedor':'bb','Preparador':'bgr'};
-      var tc2={'Salario':'bb','Aj.Custo':'bgr','Comissao':'bg','Retirada':'by','Vale':'bo','Outros':'bgr'};
+      var tc2={'Salario':'bb','Aj.Custo':'bgr','Comissao':'bg','Retirada':'by','Vale':'bo','Outros':'bgr','Comissao-Pendente':'by'};
       h += '<div style="background:white;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
       h += '<div style="display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;border-radius:50%;background:#22c55e20;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#22c55e">'+emp.name[0]+'</div>';
