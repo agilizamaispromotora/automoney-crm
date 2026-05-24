@@ -375,7 +375,7 @@ function mapVehicle(r) { return { id:r.id, brand:r.brand, model:r.model, year:r.
 function mapClient(r)  { return { id:r.id, name:r.name, cpf:r.cpf, phone:r.phone, email:r.email, address:r.address, city:r.city, type:r.type, birthdate:r.birthdate }; }
 function mapSale(r)    { return { id:r.id, vehicleId:r.vehicle_id, clientId:r.client_id, seller:r.seller, saleDate:r.sale_date, saleValue:r.sale_value, payMethod:r.pay_method, bankName:r.bank_name, commission:r.commission, transferType:r.transfer_type, desp:r.despachante, status:r.status }; }
 function mapExpense(r) { return { id:r.id, cat:r.category, desc:r.description, value:r.value, date:r.date, type:r.type, paid:r.paid }; }
-function mapEmployee(r){ return { id:r.id, name:r.name, role:r.role, salary:r.salary, helpCost:r.help_cost, sales:0 }; }
+function mapEmployee(r){ return { id:r.id, name:r.name, role:r.role, salary:Number(r.salary||0), benefit:Number(r.benefit||0), helpCost:Number(r.benefit||r.help_cost||0), sales:0 }; }
 function mapPayLog(r)  { return { id:r.id, emp:r.employee_name, date:r.date, desc:r.description, value:r.value, type:r.type }; }
 function mapLead(r)    { return { id:r.id, name:r.name, phone:r.phone, interest:r.interest, portal:r.portal, date:r.date, status:r.status, notes:r.notes }; }
 function mapAppt(r)    { return { id:r.id, title:r.title, date:r.date, time:r.time, person:r.person, type:r.type, notes:r.notes }; }
