@@ -407,6 +407,12 @@ function getModelOpts(brand, selected) {
   }).join('');
 }
 
+
+function toggleConsig(val) {
+  var el = document.getElementById('consig-wrap');
+  if (el) el.style.display = val === 'Consignado' ? '' : 'none';
+}
+
 function onBrandChange(val) {
   var modelSel = document.getElementById('vmodel-sel');
   if (modelSel) {
@@ -771,7 +777,7 @@ function openVehModal(id) {
   h += finp('vcolor','Cor',d.color) + '<div class="fg"><label>Km</label><input type="text" inputmode="numeric" id="vmil" value="'+(d.mileage||'')+'"/></div>';
   h += finp('vchassi','Chassi',d.chassis) + finp('vrenavam','RENAVAM',d.renavam);
   h += '<div class="fg"><label>Tipo Entrada</label><select id="vetype"><option value="Compra"'+(d.entryType==="Compra"?' selected':'')+'>Compra</option><option value="Troca"'+(d.entryType==="Troca"?' selected':'')+'>Troca</option><option value="Consignado"'+(d.entryType==="Consignado"?' selected':'')+'>Consignado</option><option value="Investidor"'+(d.entryType==="Investidor"?' selected':'')+'>Investidor</option></select></div>';
-  h += '<div class="fg"><label>Proprietario</label><select id="vowner" onchange="document.getElementById(\'consig-wrap\').style.display=this.value===\'Consignado\'?\'\':\'none\'"><option value="Loja"'+(d.owner==="Loja"?' selected':'')+'>Loja</option><option value="Consignado"'+(d.owner==="Consignado"?' selected':'')+'>Consignado</option><option value="Investidor"'+(d.owner==="Investidor"?' selected':'')+'>Investidor</option></select></div>';
+  h += '<div class="fg"><label>Proprietario</label><select id="vowner" onchange="toggleConsig(this.value)">' + ['Loja','Consignado','Investidor'].map(function(op){ return '<option value="'+op+'"'+(d.owner===op?' selected':'')+'>'+op+'</option>'; }).join('') + '</select></div>';
   // Show consignador field if Consignado
   var consignadoresList = DB.employees.map(function(e){ return e.name; });
   consignadoresList.unshift('Outro');
