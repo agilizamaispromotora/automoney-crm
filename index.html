@@ -235,6 +235,39 @@ input[type=checkbox]{width:16px;height:16px;accent-color:#22c55e;}
 
 
 <script>
+function celebrateSale() {
+  var msgs = [
+    'Venda registrada! Voce e incrivel!',
+    'ISSO AI! Mais uma venda no bolso!',
+    'Arrasou! Continue assim!',
+    'Que show! Venda feita com sucesso!',
+    'Parabens! Voce e uma maquina!'
+  ];
+  var msg = msgs[Math.floor(Math.random()*msgs.length)];
+  var div = document.createElement('div');
+  div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#22c55e,#16a34a);color:white;padding:18px 32px;border-radius:16px;font-size:16px;font-weight:800;z-index:9999;box-shadow:0 8px 32px rgba(34,197,94,.4);text-align:center;animation:fadeIn .3s';
+  div.innerHTML = '&#127881; ' + msg + ' &#127881;';
+  document.body.appendChild(div);
+  setTimeout(function(){ div.style.opacity='0'; div.style.transition='opacity .5s'; setTimeout(function(){ div.remove(); }, 500); }, 3000);
+}
+
+function celebrateConsig() {
+  var msgs = [
+    'Novo consignado! Otimo trabalho!',
+    'Mais um na prateleira! Voce arrasal',
+    'Consignado cadastrado! Traz mais!',
+    'Excelente! Seu ranking agradece!',
+    'Parabens! Cada consignado conta!'
+  ];
+  var msg = msgs[Math.floor(Math.random()*msgs.length)];
+  var div = document.createElement('div');
+  div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;padding:18px 32px;border-radius:16px;font-size:16px;font-weight:800;z-index:9999;box-shadow:0 8px 32px rgba(139,92,246,.4);text-align:center';
+  div.innerHTML = '&#127775; ' + msg + ' &#127775;';
+  document.body.appendChild(div);
+  setTimeout(function(){ div.style.opacity='0'; div.style.transition='opacity .5s'; setTimeout(function(){ div.remove(); }, 500); }, 3000);
+}
+
+
 // ============================================================
 // SUPABASE CONFIG - substitua pelos seus valores
 // ============================================================
@@ -741,118 +774,103 @@ function rDash() {
   var newLeads = DB.leads.filter(function(l){ return l.status==='Novo'; }).length;
   var exp     = DB.expenses.reduce(function(a,e){ return a+e.value; },0);
 
+  // Rankings
+  var salesMap = {}, consigMap = {};
+  DB.sales.forEach(function(s){ if(s.seller) salesMap[s.seller]=(salesMap[s.seller]||0)+1; });
+  DB.vehicles.forEach(function(v){ if(v.consignadoPor) consigMap[v.consignadoPor]=(consigMap[v.consignadoPor]||0)+1; });
+  var salesRank = Object.keys(salesMap).sort(function(a,b){ return salesMap[b]-salesMap[a]; });
+  var consigRank = Object.keys(consigMap).sort(function(a,b){ return consigMap[b]-consigMap[a]; });
+
+  var trophies = ['#127941','#1f5ea8','#9a3412','#374151','#374151'];
+  var trophyLabels = ['OURO','PRATA','BRONZE','',''];
+
+  function rankBlock(title, rankArr, countMap, unit) {
+    var h2 = '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
+    h2 += '<h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:#1e293b">'+title+'</h3>';
+    if (rankArr.length === 0) {
+      h2 += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhum registro ainda</p>';
+    } else {
+      rankArr.forEach(function(name, i){
+        var isMe = name === CUR.user;
+        var color = trophies[i] || '#374151';
+        var medal = i===0?'OURO':i===1?'PRATA':i===2?'BRONZE':'';
+        h2 += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:'+(isMe?'#f0fdf4':'#f8fafc')+';border:1.5px solid '+(isMe?'#86efac':'#e5e7eb')+'">';
+        h2 += '<div style="display:flex;align-items:center;gap:10px">';
+        h2 += '<div style="width:36px;height:36px;border-radius:50%;background:'+color+'20;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:'+color+'">'+(i+1)+'</div>';
+        h2 += '<div><div style="font-size:14px;font-weight:'+(isMe?'800':'700')+';color:'+(isMe?'#15803d':'#1e293b')+'">'+name+(isMe?' (voce)':'')+'</div>';
+        if (medal) h2 += '<div style="font-size:10px;font-weight:800;color:'+color+'">'+medal+'</div>';
+        h2 += '</div></div>';
+        h2 += '<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+color+'">'+countMap[name]+'</div><div style="font-size:11px;color:#94a3b8">'+unit+'</div></div>';
+        h2 += '</div>';
+      });
+    }
+    h2 += '</div>';
+    return h2;
+  }
+
   var h = '<div class="ph"><div><h2 class="ptitle">Dashboard</h2><p class="psub">Visao geral - Auto Money</p></div></div>';
 
   if (isG()) {
     // GESTOR - full dashboard
     h += '<div class="sg" style="grid-template-columns:repeat(4,1fr)">';
     h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+avail.length+'</div><div class="slbl">Disponiveis</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+DB.sales.length+'</div><div class="slbl">Vendas no Mes</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.leads+'"/></svg></div><div><div class="sval">'+newLeads+'</div><div class="slbl">Leads Novos</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#ef444420"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="'+ICONS.financial+'"/></svg></div><div><div class="sval">'+fmt(exp)+'</div><div class="slbl">Despesas</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+DB.sales.length+'</div><div class="slbl">Total de Vendas</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#8b5cf620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+consig.length+'</div><div class="slbl">Consignados</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#ef444420"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="'+ICONS.financial+'"/></svg></div><div><div class="sval">'+fmt(rev)+'</div><div class="slbl">Receita Total</div></div></div>';
+    h += '</div>';
+
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">';
+    h += rankBlock('Ranking de Vendas', salesRank, salesMap, 'vendas');
+    h += rankBlock('Ranking de Consignacao', consigRank, consigMap, 'consignados');
     h += '</div>';
 
     // Estoque status
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">';
-    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
+    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-top:20px">';
     h += '<h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:#1e293b">Status do Estoque</h3>';
-    var stItems = [['Disponivel',avail.length,'#22c55e'],['Em Preparacao',prep.length,'#f59e0b'],['Anunciado',ann.length,'#3b82f6'],['Vendido',sold.length,'#94a3b8'],['Consignado',consig.length,'#8b5cf6']];
-    stItems.forEach(function(s){
-      var pct = total ? Math.round(s[1]/total*100) : 0;
-      h += '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:#374151">'+s[0]+'</span><strong style="color:'+s[2]+'">'+s[1]+'</strong></div><div class="pb"><div class="pf" style="width:'+pct+'%;background:'+s[2]+'"></div></div></div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">';
+    [['Disponivel',avail.length,'#22c55e'],['Em Preparacao',prep.length,'#f59e0b'],['Anunciado',ann.length,'#3b82f6'],['Vendido',sold.length,'#94a3b8'],['Consignado',consig.length,'#8b5cf6']].forEach(function(s){
+      h += '<div style="text-align:center;padding:16px;border-radius:10px;background:'+s[2]+'10;border:1.5px solid '+s[2]+'30">';
+      h += '<div style="font-size:28px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div>';
+      h += '<div style="font-size:12px;color:#64748b;font-weight:600;margin-top:4px">'+s[0]+'</div></div>';
     });
-    h += '</div>';
-
-    // Ranking vendedores
-    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
-    h += '<h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:#1e293b">Ranking Vendedores</h3>';
-    var rankMap = {};
-    DB.sales.forEach(function(s){ if(s.seller){ rankMap[s.seller]=(rankMap[s.seller]||0)+1; } });
-    var rank = Object.keys(rankMap).sort(function(a,b){ return rankMap[b]-rankMap[a]; });
-    if (rank.length === 0) {
-      h += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda registrada</p>';
-    } else {
-      var medals = ['#1','#2','#3'];
-      rank.forEach(function(name, i){
-        h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9">';
-        h += '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">'+(medals[i]||'4.')+'</span>';
-        h += '<div><div style="font-size:14px;font-weight:700;color:#1e293b">'+name+'</div></div></div>';
-        h += '<div style="text-align:right"><div style="font-size:16px;font-weight:800;color:#22c55e">'+rankMap[name]+'</div><div style="font-size:11px;color:#94a3b8">vendas</div></div>';
-        h += '</div>';
-      });
-    }
     h += '</div></div>';
 
-    // Receita total
-    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-top:20px;display:flex;justify-content:space-between;align-items:center">';
-    h += '<div><div style="font-size:13px;color:#64748b;font-weight:600">RECEITA TOTAL DE VENDAS</div><div style="font-size:28px;font-weight:800;color:#22c55e;margin-top:4px">'+fmt(rev)+'</div></div>';
-    h += '<div style="text-align:right"><div style="font-size:13px;color:#64748b;font-weight:600">TOTAL NO ESTOQUE</div><div style="font-size:22px;font-weight:800;color:#1e293b;margin-top:4px">'+(avail.length+prep.length+ann.length)+' veiculos</div></div>';
-    h += '</div>';
-
   } else {
-    // OUTROS USUARIOS - simplified view
+    // OUTROS USUARIOS
     var mySales = DB.sales.filter(function(s){ return s.seller===CUR.user; });
-    var myComm  = DB.payLogs.filter(function(l){ return l.emp===CUR.user && (l.status==='Pendente'||(l.desc&&l.desc.indexOf('PENDENTE')>-1)); });
+    var myConsigs = DB.vehicles.filter(function(v){ return v.consignadoPor===CUR.user; });
+    var myComm = DB.payLogs.filter(function(l){ return l.emp===CUR.user && (l.status==='Pendente'||(l.desc&&l.desc.indexOf('PENDENTE')>-1)); });
     var myCommVal = myComm.reduce(function(a,l){ return a+l.value; },0);
 
+    // Motivational messages
+    var saleMsg = '';
+    if (mySales.length === 0) saleMsg = 'Bora fazer a primeira venda!';
+    else if (mySales.length === 1) saleMsg = 'Otima primeira venda! Continue assim!';
+    else if (mySales.length < 5) saleMsg = 'Voce esta no caminho certo! Forca!';
+    else if (mySales.length < 10) saleMsg = 'Excelente desempenho! Voce e incrivel!';
+    else saleMsg = 'Voce e uma maquina de vendas! Parabens!';
+
+    var consigMsg = '';
+    if (myConsigs.length === 0) consigMsg = 'Que tal trazer o primeiro consignado?';
+    else if (myConsigs.length === 1) consigMsg = 'Primeiro consignado! Traz mais!';
+    else if (myConsigs.length < 5) consigMsg = 'Arrasando nos consignados!';
+    else consigMsg = 'Mestre dos consignados! Incrivel!';
+
     h += '<div class="sg" style="grid-template-columns:repeat(3,1fr)">';
-    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+(avail.length+prep.length+ann.length)+'</div><div class="slbl">Carros no Estoque</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+mySales.length+'</div><div class="slbl">Minhas Vendas</div></div></div>';
-    h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.financial+'"/></svg></div><div><div class="sval" style="color:#f59e0b">'+fmt(myCommVal)+'</div><div class="slbl">Comissao a Receber</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#22c55e20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+(avail.length+prep.length+ann.length)+'</div><div class="slbl">No Estoque</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#3b82f620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+mySales.length+'</div><div class="slbl">Minhas Vendas</div><div style="font-size:11px;color:#22c55e;margin-top:2px">'+saleMsg+'</div></div></div>';
+    h += '<div class="scard"><div class="sicon" style="background:#8b5cf620"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="'+ICONS.vehicles+'"/></svg></div><div><div class="sval">'+myConsigs.length+'</div><div class="slbl">Meus Consignados</div><div style="font-size:11px;color:#8b5cf6;margin-top:2px">'+consigMsg+'</div></div></div>';
     h += '</div>';
 
-    // Ranking geral visivel para todos
-    var rankMap2 = {};
-    DB.sales.forEach(function(s){ if(s.seller){ rankMap2[s.seller]=(rankMap2[s.seller]||0)+1; } });
-    var rank2 = Object.keys(rankMap2).sort(function(a,b){ return rankMap2[b]-rankMap2[a]; });
-    if (rank2.length > 0) {
-      h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:20px">';
-      h += '<h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:#1e293b">Ranking de Vendas</h3>';
-      var medals = ["#1","#2","#3"];
-      rank2.forEach(function(name, i){
-        var isMe = name === CUR.user;
-        h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;background:'+(isMe?'#f0fdf4':'white')+';border-radius:6px;padding:10px">';
-        h += '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">'+(medals[i]||'4.')+'</span>';
-        h += '<div><div style="font-size:14px;font-weight:'+(isMe?'800':'700')+';color:'+(isMe?'#15803d':'#1e293b')+'">'+name+(isMe?' (voce)':'')+'</div></div></div>';
-        h += '<div style="text-align:right"><div style="font-size:18px;font-weight:800;color:#22c55e">'+rankMap2[name]+'</div><div style="font-size:11px;color:#94a3b8">vendas</div></div>';
-        h += '</div>';
-      });
-      h += '</div>';
-    }
+    // Comissao card
+    h += '<div style="background:white;border-radius:12px;padding:16px;border:1.5px solid #fde68a;margin-top:16px;display:flex;justify-content:space-between;align-items:center">';
+    h += '<div><div style="font-size:13px;color:#92400e;font-weight:700">COMISSAO A RECEBER</div><div style="font-size:26px;font-weight:900;color:#f59e0b;margin-top:4px">'+fmt(myCommVal)+'</div></div>';
+    h += '<div style="font-size:36px">&#128176;</div></div>';
 
-    // Estoque resumido
-    h += '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-top:20px">';
-    h += '<h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Estoque Disponivel</h3>';
-    if (avail.length === 0) {
-      h += '<p style="text-align:center;color:#94a3b8;padding:20px">Nenhum veiculo disponivel</p>';
-    } else {
-      h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">';
-      avail.slice(0,6).forEach(function(v){
-        h += '<div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:14px">';
-        h += '<div style="font-size:13px;font-weight:800;color:#22c55e">'+v.plate+'</div>';
-        h += '<div style="font-size:14px;font-weight:700;color:#1e293b;margin:4px 0">'+v.brand+' '+v.model+'</div>';
-        h += '<div style="font-size:12px;color:#64748b">'+v.year+' | '+v.color+'</div>';
-        h += '<div style="font-size:15px;font-weight:800;color:#22c55e;margin-top:8px">'+fmt(v.saleValue)+'</div>';
-        h += '</div>';
-      });
-      h += '</div>';
-    }
-
-    // Consignados
-    var myConsig = DB.vehicles.filter(function(v){ return v.consignadoPor===CUR.user && v.status!=='Vendido'; });
-    if (myConsig.length > 0) {
-      h += '<h3 style="font-size:15px;font-weight:700;margin:20px 0 12px">Meus Consignados ('+myConsig.length+')</h3>';
-      h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">';
-      myConsig.forEach(function(v){
-        h += '<div style="border:2px solid #8b5cf6;border-radius:10px;padding:14px;background:#f5f3ff">';
-        h += '<div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:4px">CONSIGNADO</div>';
-        h += '<div style="font-size:13px;font-weight:800;color:#22c55e">'+v.plate+'</div>';
-        h += '<div style="font-size:14px;font-weight:700;color:#1e293b;margin:4px 0">'+v.brand+' '+v.model+'</div>';
-        h += '<div style="font-size:15px;font-weight:800;color:#22c55e;margin-top:8px">'+fmt(v.saleValue)+'</div>';
-        h += '</div>';
-      });
-      h += '</div>';
-    }
+    // Rankings
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">';
+    h += rankBlock('Ranking de Vendas', salesRank, salesMap, 'vendas');
+    h += rankBlock('Ranking de Consignacao', consigRank, consigMap, 'consignados');
     h += '</div>';
   }
 
@@ -1003,7 +1021,7 @@ function saveVeh(id) {
         if (saved && saved.id) obj.id = saved.id;
         DB.vehicles.push(obj);
       }
-      closeModal(); rVehicles();
+      closeModal(); rVehicles(); if(obj.owner==='Consignado') celebrateConsig();
     }).catch(function(e) {
       console.error('Erro:', e);
       alert('Erro ao salvar. Tente novamente.');
@@ -1452,7 +1470,7 @@ function saveSale2() {
           DB.expenses.push(retLog);
         });
       }
-      closeModal(); rSales();
+      closeModal(); rSales(); celebrateSale();
     });
   } else {
     obj.id = nextId(DB.sales);
@@ -1467,7 +1485,7 @@ function saveSale2() {
       var vehY = DB.vehicles.find(function(v){ return String(v.id)===String(vId); });
       DB.expenses.push({ id: nextId(DB.expenses), cat: 'Retorno Banco', desc: 'Retorno ' + (window._bankName||'') + ' - ' + (vehY ? vehY.plate : ''), value: window._bankRetorno, date: obj.saleDate, type: 'Retorno Banco', paid: 'Pendente' });
     }
-    closeModal(); rSales();
+    closeModal(); rSales(); celebrateSale();
   }
 }
 
