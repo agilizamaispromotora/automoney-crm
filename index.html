@@ -1807,10 +1807,10 @@ function saveDesp() {
 
 
 function openFluxo(saleId) {
-  var sale = DB.sales.find(function(s){ return s.id == saleId; });
-  if (!sale) return;
-  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
-  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
+  if (!sale) { console.log('Sale not found:',saleId,'Available:',DB.sales.map(function(s){return s.id;})); return; }
+  var veh = DB.vehicles.find(function(v){ return String(v.id)===String(sale.vehicleId); });
+  var cli = DB.clients.find(function(c){ return String(c.id)===String(sale.clientId); });
 
   var vNome  = veh ? veh.brand + ' ' + veh.model : '___';
   var vPlaca = veh ? veh.plate : '___';
@@ -1908,7 +1908,7 @@ function openFluxo(saleId) {
 }
 
 function toggleFluxo(saleId, key) {
-  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
   if (!sale) return;
   var fluxo = sale.fluxo ? Object.assign({}, sale.fluxo) : {};
   fluxo[key] = fluxo[key] === 'ok' ? '' : 'ok';
@@ -1926,7 +1926,7 @@ function toggleFluxo(saleId, key) {
 }
 
 function setFluxoTransf(saleId, status) {
-  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
   if (!sale) return;
   var fluxo = sale.fluxo ? Object.assign({}, sale.fluxo) : {};
   fluxo.transferencia = status;
@@ -1941,7 +1941,7 @@ var _origUpdDesp = updDesp;
 
 
 function markFluxoStep(saleId, key) {
-  var sale = DB.sales.find(function(s){ return s.id == saleId; });
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
   if (!sale) return;
   var fluxo = sale.fluxo ? Object.assign({}, sale.fluxo) : {};
   fluxo[key] = 'ok';
@@ -1950,10 +1950,10 @@ function markFluxoStep(saleId, key) {
 
 
 function openTransf(saleId) {
-  var sale = DB.sales.find(function(s){ return s.id == saleId; });
-  if (!sale) return;
-  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
-  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
+  if (!sale) { console.log('Sale not found:',saleId,'Available:',DB.sales.map(function(s){return s.id;})); return; }
+  var veh = DB.vehicles.find(function(v){ return String(v.id)===String(sale.vehicleId); });
+  var cli = DB.clients.find(function(c){ return String(c.id)===String(sale.clientId); });
 
   var vNome  = veh ? veh.brand + ' ' + veh.model : '___';
   var vPlaca = veh ? veh.plate : '___';
@@ -2075,10 +2075,10 @@ function saveTransf(saleId) {
 }
 
 function openVistoria(saleId) {
-  var sale = DB.sales.find(function(s){ return s.id == saleId; });
-  if (!sale) return;
-  var veh = DB.vehicles.find(function(v){ return v.id == sale.vehicleId; });
-  var cli = DB.clients.find(function(c){ return c.id == sale.clientId; });
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
+  if (!sale) { console.log('Sale not found:',saleId,'Available:',DB.sales.map(function(s){return s.id;})); return; }
+  var veh = DB.vehicles.find(function(v){ return String(v.id)===String(sale.vehicleId); });
+  var cli = DB.clients.find(function(c){ return String(c.id)===String(sale.clientId); });
 
   var vNome  = veh ? veh.brand + ' ' + veh.model : '___';
   var vPlaca = veh ? veh.plate : '___';
