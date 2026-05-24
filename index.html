@@ -1183,19 +1183,22 @@ function saveLead() {
 // ========== SALES ==========
 function rSales() {
   var h = '<div class="ph"><div><h2 class="ptitle">Vendas</h2><p class="psub">Registro de vendas</p></div>';
-  if (isG() || CUR.role==='vendedor' || CUR.role==='consignadora') {
-    h += '<button class="btn btnp" onclick="openSaleModal()">+ Registrar Venda</button>';
-  }
+  h += '<button class="btn btnp" onclick="openSaleModal()">+ Registrar Venda</button>';
   h += '</div>';
-
-  var list = DB.sales; // all users see all sales
 
   h += mkTable(
     ['Data','Veiculo','Cliente','Vendedor','Pagamento','Valor','Status',''],
-    list.map(function(s) {
+    DB.sales.map(function(s) {
       var veh = DB.vehicles.find(function(v){ return String(v.id)===String(s.vehicleId); });
       var cli = DB.clients.find(function(c){ return String(c.id)===String(s.clientId); });
-      var payStr = s.payDetails ? s.payDetails.split('|').map(function(p){ return p.split(':')[0].trim(); }).join(' + ') : (s.payMethod||'-');
+      // Build payment summary - skip empty/dash/Despachante
+      var payStr = '-';
+      if (s.payDetails) {
+        var parts = s.payDetails.split('|').map(function(p){ return p.split(':')[0].trim(); }).filter(function(p){ return p && p !== '-' && p !== 'Despachante'; });
+        if (parts.length > 0) payStr = parts.join(' + ');
+      } else if (s.payMethod && s.payMethod !== '-' && s.payMethod !== 'Despachante') {
+        payStr = s.payMethod;
+      }
       var statusVal = s.saleStatus || 'Pre-venda';
       return {
         cells: [
@@ -1204,9 +1207,12 @@ function rSales() {
           cli ? cli.name : '-',
           s.seller || '-',
           '<span style="font-size:12px;color:#374151">'+payStr+'</span>',
-          '<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>',
+          s.saleValue > 0 ? '<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>' : '-',
           bk(statusVal, statusVal==='Vendido'?'bg':'by'),
-          isG() ? '<button class="btn btns" style="font-size:11px;padding:4px 8px" data-sid="'+s.id+'" onclick="toggleSaleStatus(this.getAttribute(\'data-sid\'))">Alterar</button>' : ''
+          '<div style="display:flex;gap:4px">'
+            + '<button class="btn btns" style="font-size:11px;padding:4px 8px" data-sid="'+s.id+'" onclick="toggleSaleStatus(this.getAttribute(\'data-sid\'))">Status</button>'
+            + (isG() ? '<button class="btn btns" style="font-size:11px;padding:4px 8px" data-sid="'+s.id+'" onclick="openEditSale(this.getAttribute(\'data-sid\'))">Editar</button>' : '')
+            + '</div>'
         ],
         data: s
       };
@@ -1214,6 +1220,68 @@ function rSales() {
   );
 
   document.getElementById('p-sales').innerHTML = h;
+}
+
+
+function openEditSale(saleId) {
+  var sale = DB.sales.find(function(s){ return String(s.id)===String(saleId); });
+  if (!sale) return;
+  var veh = DB.vehicles.find(function(v){ return String(v.id)===String(sale.vehicleId); });
+  var cli = DB.clients.find(function(c){ return String(c.id)===String(sale.clientId); });
+
+  var vOpts = DB.vehicles.map(function(v){
+    return '<option value="'+v.id+'"'+(String(v.id)===String(sale.vehicleId)?' selected':'')+'>'+v.brand+' '+v.model+' - '+v.plate+'</option>';
+  }).join('');
+  var cOpts = DB.clients.map(function(c){
+    return '<option value="'+c.id+'"'+(String(c.id)===String(sale.clientId)?' selected':'')+'>'+c.name+'</option>';
+  }).join('');
+  var sOpts = DB.employees.map(function(e){
+    return '<option value="'+e.name+'"'+(e.name===sale.seller?' selected':'')+'>'+e.name+'</option>';
+  }).join('');
+
+  var h = mHead('Editar Venda') + '<div class="modal-body"><div class="fgrid">';
+  h += '<div class="fg"><label>Veiculo</label><select id="es-veh">'+vOpts+'</select></div>';
+  h += '<div class="fg"><label>Cliente</label><select id="es-cli">'+cOpts+'</select></div>';
+  h += '<div class="fg"><label>Vendedor</label><select id="es-seller">'+sOpts+'</select></div>';
+  h += finp('es-date','Data',sale.saleDate,'','date');
+  h += finp('es-val','Valor R$',sale.saleValue);
+  h += '<div class="fg"><label>Status</label><select id="es-status"><option value="Pre-venda"'+((!sale.saleStatus||sale.saleStatus==="Pre-venda")?" selected":"")+'>Pre-venda</option><option value="Vendido"'+(sale.saleStatus==="Vendido"?" selected":"")+'>Vendido</option></select></div>';
+  h += finp('es-pay','Pagamento (resumo)',sale.payMethod||'');
+  h += finp('es-obs','Observacoes',sale.obs||'');
+  h += '</div>';
+  h += '<div class="modal-foot">';
+  h += '<button class="btn btns" onclick="closeModal()">Cancelar</button>';
+  h += '<button class="btn btnp" data-sid="'+saleId+'" onclick="saveEditSale(this.getAttribute(\'data-sid\'))">Salvar</button>';
+  h += '</div></div>';
+  openModal(h, 'modal-lg');
+}
+
+function saveEditSale(saleId) {
+  function toN(s){ var n=parseFloat(String(s||0).replace(',','.')); return isNaN(n)?0:n; }
+  var upd = {
+    vehicleId: gv('es-veh'),
+    clientId: gv('es-cli'),
+    seller: gv('es-seller'),
+    saleDate: gv('es-date'),
+    saleValue: toN(gv('es-val')),
+    saleStatus: gv('es-status'),
+    payMethod: gv('es-pay'),
+    obs: gv('es-obs')
+  };
+  DB.sales = DB.sales.map(function(s){ return String(s.id)===String(saleId) ? Object.assign({},s,upd) : s; });
+  if (supaConfigured()) {
+    supaUpdate('sales', saleId, {
+      vehicle_id: upd.vehicleId,
+      client_id: upd.clientId,
+      seller: upd.seller,
+      sale_date: upd.saleDate,
+      sale_value: upd.saleValue,
+      status: upd.saleStatus,
+      pay_method: upd.payMethod
+    });
+  }
+  closeModal();
+  rSales();
 }
 
 function toggleSaleStatus(sid) {
