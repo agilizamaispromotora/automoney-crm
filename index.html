@@ -1188,7 +1188,7 @@ function rSales() {
   }
   h += '</div>';
 
-  var list = isG() ? DB.sales : DB.sales.filter(function(s){ return s.seller===CUR.user; });
+  var list = DB.sales; // all users see all sales
 
   h += mkTable(
     ['Data','Veiculo','Cliente','Vendedor','Pagamento','Valor','Status',''],
@@ -2161,7 +2161,7 @@ function openDespModal() {
 function saveDesp() {
   var vId = gv('dv');
   if (!vId) { alert('Selecione o veiculo.'); return; }
-  var obj = { vehicleId:vId, clientId:gv('dc')||null, seller:CUR.user, saleDate:gv('ddate'), saleValue:0, payMethod:'Despachante', bankName:'', commission:0, transferType:gv('dtransf'), desp:gv('ddesp'), status:'Em andamento' };
+  var obj = { vehicleId:vId, clientId:gv('dc')||null, seller:CUR.user, saleDate:gv('ddate'), saleValue:0, payMethod:'-', bankName:'', commission:0, transferType:gv('dtransf'), desp:gv('ddesp'), status:'Em andamento' };
   if (supaConfigured()) {
     var dbObj = { vehicle_id:vId, client_id:obj.clientId||null, seller:obj.seller, sale_date:obj.saleDate, sale_value:0, pay_method:'Despachante', commission:0, transfer_type:obj.transferType, despachante:obj.desp, status:'Em andamento' };
     supaInsert('sales', dbObj).then(function(r) {
