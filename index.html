@@ -796,17 +796,51 @@ function saveVeh(id) {
   var brand = gv('vbrand');
   var model = gv('vmodel-sel');
   var plate = gv('vplate');
-  // If editing, keep original brand/model if not changed
   var orig = id ? DB.vehicles.find(function(v){ return v.id == id; }) : null;
   if (!brand && orig) brand = orig.brand;
   if (!model && orig) model = orig.model;
   if (!brand) { alert('Selecione a marca.'); return; }
   if (!model) model = brand;
   if (!plate) { alert('Informe a placa.'); return; }
-  if (!brand || !model || !plate) { alert('Preencha os campos obrigatorios.'); return; }
-  var obj = { brand:brand, model:model||gv('vmodel'), year:Number(gv('vyear')), plate:plate.toUpperCase(), color:gv('vcolor'), chassis:gv('vchassi'), renavam:gv('vrenavam'), owner:gv('vowner'), ownerName:gv('vowner2'), entryValue:Number(gv('ventry')), saleValue:Number(gv('vsale')), entryType:gv('vetype'), status:gv('vstatus'), mileage:Number(gv('vmil')), expenses: id ? (DB.vehicles.find(function(v){return v.id==id;})||{}).expenses||0 : 0 };
+
+  function toNum(s) {
+    if (!s) return 0;
+    var clean = String(s).replace(/[^0-9,\.]/g,'');
+    if (clean.indexOf(',') > -1 && clean.indexOf('.') > -1) {
+      clean = clean.replace(/\./g,'').replace(',','.');
+    } else if (clean.indexOf(',') > -1) {
+      clean = clean.replace(',','.');
+    }
+    var n = parseFloat(clean);
+    return isNaN(n) ? 0 : n;
+  }
+
+  var obj = {
+    brand: brand,
+    model: model,
+    year: parseInt(gv('vyear')) || 0,
+    plate: plate.toUpperCase(),
+    color: gv('vcolor'),
+    chassis: gv('vchassi'),
+    renavam: gv('vrenavam'),
+    owner: gv('vowner'),
+    ownerName: gv('vowner2'),
+    entryValue: toNum(gv('ventry')),
+    saleValue: toNum(gv('vsale')),
+    entryType: gv('vetype'),
+    status: gv('vstatus'),
+    mileage: parseInt(gv('vmil')) || 0,
+    expenses: orig ? (orig.expenses || 0) : 0
+  };
+
   if (supaConfigured()) {
-    var dbObj = { brand:obj.brand, model:obj.model, year:obj.year, plate:obj.plate, color:obj.color, chassis:obj.chassis, renavam:obj.renavam, owner:obj.owner, owner_name:obj.ownerName, entry_value:obj.entryValue, sale_value:obj.saleValue, entry_type:obj.entryType, status:obj.status, mileage:obj.mileage };
+    var dbObj = {
+      brand: obj.brand, model: obj.model, year: obj.year,
+      plate: obj.plate, color: obj.color, chassis: obj.chassis,
+      renavam: obj.renavam, owner: obj.owner, owner_name: obj.ownerName,
+      entry_value: obj.entryValue, sale_value: obj.saleValue,
+      entry_type: obj.entryType, status: obj.status, mileage: obj.mileage
+    };
     var prom = id ? supaUpdate('vehicles', id, dbObj) : supaInsert('vehicles', dbObj);
     prom.then(function(r) {
       var saved = Array.isArray(r) ? r[0] : r;
@@ -818,8 +852,8 @@ function saveVeh(id) {
       }
       closeModal(); rVehicles();
     }).catch(function(e) {
-      console.error('Erro ao salvar veiculo:', e);
-      alert('Erro ao salvar. Verifique os dados e tente novamente.');
+      console.error('Erro:', e);
+      alert('Erro ao salvar. Tente novamente.');
     });
   } else {
     if (id) {
@@ -979,52 +1013,219 @@ function rSales() {
   document.getElementById('p-sales').innerHTML = h;
 }
 function openSaleModal() {
-  var vOpts = DB.vehicles.filter(function(v) { return v.status !== 'Vendido'; }).map(function(v) { return '<option value="'+v.id+'">'+v.brand+' '+v.model+' - '+v.plate+'</option>'; }).join('');
-  var cOpts = DB.clients.map(function(c) { return '<option value="'+c.id+'">'+c.name+'</option>'; }).join('');
-  var sOpts = DB.employees.filter(function(e) { return e.role==='Gestor'||e.role==='Gestora'||e.role==='Vendedor'; }).map(function(e) { return '<option>'+e.name+'</option>'; }).join('');
-  var pOpts = ['Pix','TED','Financiamento','Parcelado Loja','Troca + Dinheiro','Troca + Financiamento','Financiamento + Entrada'].map(function(o) { return '<option>'+o+'</option>'; }).join('');
-  var h = mHead('Registrar Venda') + '<div class="modal-body"><div class="fgrid">';
-  h += '<div class="fg"><label>Veiculo <span class="req">*</span></label><select id="sveh"><option value="">Selecionar...</option>' + vOpts + '</select></div>';
-  h += '<div class="fg"><label>Cliente <span class="req">*</span></label><select id="scli"><option value="">Selecionar...</option>' + cOpts + '</select></div>';
-  h += '<div class="fg"><label>Vendedor</label><select id="ssel">' + sOpts + '</select></div>';
-  h += finp('sdate','Data',td(),'','date');
-  h += finp('sval','Valor de Venda R$','',true,'number');
-  h += '<div class="fg"><label>Pagamento</label><select id="spay">' + pOpts + '</select></div>';
-  h += finp('sbank','Banco (financiamento)','') + finp('sdown','Entrada R$','0','','number');
-  h += fsel('stransf','Transferencia','Cliente',['Cliente','Cortesia']);
-  h += fsel('sdesp','Despachante','Aguardando',['Aguardando','Em andamento','Concluido']);
-  h += '</div><div id="commprv"></div>';
-  h += '<div class="modal-foot"><button class="btn btns" onclick="closeModal()">Cancelar</button><button class="btn btnp" onclick="saveSale()">Registrar</button></div></div>';
-  openModal(h, 'modal-lg');
-  setTimeout(function() {
-    var el = document.getElementById('sval');
-    if (el) el.oninput = function() {
-      var v = Number(this.value);
-      var p = document.getElementById('commprv');
-      if (p && v > 0) p.innerHTML = '<div class="infobox">Comissao: <strong>' + fmt(calcComm(v)) + '</strong> (ate R$50k = R$500, acima = 1%)</div>';
-    };
-  }, 100);
+  var vOpts = '<option value="">Selecionar...</option>' + DB.vehicles.filter(function(v){ return v.status !== 'Vendido'; }).map(function(v){
+    return '<option value="'+v.id+'" data-val="'+v.saleValue+'">'+v.brand+' '+v.model+' '+v.year+' - '+v.plate+'</option>';
+  }).join('');
+  var cOpts = '<option value="">Selecionar...</option>' + DB.clients.map(function(c){
+    return '<option value="'+c.id+'">'+c.name+'</option>';
+  }).join('');
+  var sOpts = DB.employees.filter(function(e){ return e.role==='Gestor'||e.role==='Gestora'||e.role==='Vendedor'; }).map(function(e){
+    return '<option>'+e.name+'</option>';
+  }).join('');
+
+  var h = mHead('Registrar Venda') + '<div class="modal-body">';
+  h += '<div class="fgrid">';
+  h += '<div class="fg"><label>Veiculo <span class="req">*</span></label><select id="sv" onchange="onVehSelect(this)"><option value="">Selecionar...</option>'+vOpts+'</select></div>';
+  h += '<div class="fg"><label>Cliente <span class="req">*</span></label><select id="sc"><option value="">Selecionar...</option>'+cOpts+'</select></div>';
+  h += '<div class="fg"><label>Vendedor</label><select id="ssel">'+sOpts+'</select></div>';
+  h += '<div class="fg"><label>Data</label><input type="date" id="sdate" value="'+td()+'"/></div>';
+  h += '</div>';
+
+  // Valor total + saldo
+  h += '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px;margin-bottom:16px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  h += '<span style="font-size:14px;font-weight:700;color:#374151">Valor Total do Veiculo</span>';
+  h += '<span id="sv-total" style="font-size:22px;font-weight:800;color:#1e293b">R$ 0,00</span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center">';
+  h += '<span style="font-size:14px;font-weight:700;color:#374151">Saldo Restante</span>';
+  h += '<span id="sv-saldo" style="font-size:22px;font-weight:800;color:#22c55e">R$ 0,00</span></div></div>';
+
+  // Pagamentos
+  h += '<div style="margin-bottom:16px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  h += '<strong style="font-size:14px;color:#374151">Formas de Pagamento</strong>';
+  h += '<button class="btn btnp" style="font-size:12px;padding:6px 12px" onclick="addPayRow()">+ Adicionar</button></div>';
+  h += '<div id="pay-rows"></div></div>';
+
+  // Comissao preview
+  h += '<div id="comm-prv" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;margin-bottom:8px;font-size:14px"></div>';
+
+  // Transferencia
+  h += '<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px">Transferencia por conta de:</div>';
+  h += '<div style="display:flex;gap:10px">';
+  h += '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #22c55e;border-radius:10px;cursor:pointer;background:#f0fdf4" id="trl-cliente">';
+  h += '<input type="radio" name="sale-transf" value="Cliente" checked style="accent-color:#22c55e"> <div><div style="font-weight:700;font-size:14px">👤 Cliente</div><div style="font-size:12px;color:#64748b">Sem custo para a loja</div></div></label>';
+  h += '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer;background:white" id="trl-cortesia">';
+  h += '<input type="radio" name="sale-transf" value="Cortesia" style="accent-color:#3b82f6"> <div><div style="font-weight:700;font-size:14px">🎁 Cortesia</div><div style="font-size:12px;color:#64748b">Loja paga a transferencia</div></div></label>';
+  h += '</div></div>';
+
+  h += '<div class="modal-foot">';
+  h += '<button class="btn btns" onclick="closeModal()">Cancelar</button>';
+  h += '<button class="btn btnp" onclick="saveSale2()">Registrar Venda</button>';
+  h += '</div></div>';
+
+  openModal(h, 'modal-lg', function() {
+    window._payRows = [];
+    window._saleTotal = 0;
+  });
 }
-function saveSale() {
-  var vId = gv('sveh'), cId = gv('scli');
+
+function onVehSelect(sel) {
+  var opt = sel.options[sel.selectedIndex];
+  var val = opt ? parseFloat(opt.getAttribute('data-val')) || 0 : 0;
+  window._saleTotal = val;
+  document.getElementById('sv-total').textContent = fmt(val);
+  updateSaldo();
+  // Commission preview
+  var commEl = document.getElementById('comm-prv');
+  if (commEl && val > 0) {
+    commEl.style.display = 'block';
+    commEl.innerHTML = 'Comissao calculada: <strong>' + fmt(calcComm(val)) + '</strong> (ate R$50.000 = R$500 | acima = 1%)';
+  }
+}
+
+function addPayRow() {
+  var PMETS = ['Pix/TED/Transferencia','Dinheiro','Financiamento','Carro na Troca','Cheque','Consorcio','Parcelado Loja','Sinal'];
+  if (!window._payRows) window._payRows = [];
+  var rowId = Date.now();
+  window._payRows.push({ id: rowId, method: '', value: 0, bank: '', details: '' });
+
+  var container = document.getElementById('pay-rows');
+  if (!container) return;
+
+  var row = document.createElement('div');
+  row.id = 'pr-' + rowId;
+  row.style.cssText = 'background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:10px';
+
+  var mOpts = PMETS.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+
+  row.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">'
+    + '<div class="fg" style="margin:0"><label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Forma</label>'
+    + '<select onchange="onPayMethod('+rowId+',this.value)" style="width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"><option value="">Selecione...</option>'+mOpts+'</select></div>'
+    + '<div class="fg" style="margin:0"><label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Valor R$</label>'
+    + '<input type="text" id="pv-'+rowId+'" placeholder="0" oninput="onPayValue('+rowId+',this.value)" style="width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"/></div>'
+    + '<button onclick="removePayRow('+rowId+')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:16px;margin-bottom:0">x</button></div>'
+    + '<div id="pd-'+rowId+'" style="margin-top:8px"></div>';
+
+  container.appendChild(row);
+}
+
+function onPayMethod(rowId, method) {
+  if (!window._payRows) return;
+  var row = window._payRows.find(function(r){ return r.id == rowId; });
+  if (row) row.method = method;
+
+  var detDiv = document.getElementById('pd-' + rowId);
+  if (!detDiv) return;
+  detDiv.innerHTML = '';
+
+  if (method === 'Financiamento') {
+    detDiv.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Banco</label><input type="text" id="pb-'+rowId+'" placeholder="Ex: Santander" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Prazo (meses)</label><input type="text" id="pp-'+rowId+'" placeholder="Ex: 60" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Parcela R$</label><input type="text" id="ppa-'+rowId+'" placeholder="Ex: 1500" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Retorno Loja R$</label><input type="text" id="prt-'+rowId+'" placeholder="Comissao banco" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '</div>';
+  } else if (method === 'Carro na Troca') {
+    detDiv.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Veiculo</label><input type="text" id="ptr-'+rowId+'" placeholder="Ex: Gol 2018" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Placa</label><input type="text" id="ppl-'+rowId+'" placeholder="Ex: ABC-1234" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit"/></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">Valor Avaliado R$</label><input type="text" id="pav-'+rowId+'" placeholder="Ex: 25000" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:inherit" oninput="syncTroca('+rowId+',this.value)"/></div>'
+      + '</div>';
+  }
+}
+
+function onPayValue(rowId, val) {
+  if (!window._payRows) return;
+  var row = window._payRows.find(function(r){ return r.id == rowId; });
+  var n = parseFloat(String(val||0).replace(',','.')) || 0;
+  if (row) row.value = n;
+  updateSaldo();
+}
+
+function removePayRow(rowId) {
+  window._payRows = (window._payRows||[]).filter(function(r){ return r.id != rowId; });
+  var el = document.getElementById('pr-' + rowId);
+  if (el) el.remove();
+  updateSaldo();
+}
+
+
+function syncTroca(rowId, val) {
+  var pvEl = document.getElementById('pv-' + rowId);
+  if (pvEl) { pvEl.value = val; onPayValue(rowId, val); }
+}
+
+function updateSaldo() {
+  var total = window._saleTotal || 0;
+  var paid = (window._payRows||[]).reduce(function(a,r){ return a + (r.value||0); }, 0);
+  var saldo = total - paid;
+  var saldoEl = document.getElementById('sv-saldo');
+  if (saldoEl) {
+    saldoEl.textContent = fmt(saldo);
+    saldoEl.style.color = saldo <= 0 ? '#22c55e' : '#ef4444';
+  }
+}
+
+function saveSale2() {
+  var vId = gv('sv'), cId = gv('sc');
   if (!vId || !cId) { alert('Selecione veiculo e cliente.'); return; }
-  var val = Number(gv('sval'));
-  var obj = { vehicleId:vId, clientId:cId, seller:gv('ssel'), saleDate:gv('sdate'), saleValue:val, payMethod:gv('spay'), bankName:gv('sbank'), commission:calcComm(val), transferType:gv('stransf'), desp:gv('sdesp'), status:'Em andamento' };
+  var total = window._saleTotal || 0;
+  var rows = window._payRows || [];
+  if (!rows.length) { alert('Adicione pelo menos uma forma de pagamento.'); return; }
+
+  // Build payment details string
+  var payDetails = rows.map(function(r){
+    var det = r.method;
+    var bank = document.getElementById('pb-'+r.id) ? document.getElementById('pb-'+r.id).value : '';
+    var prazo = document.getElementById('pp-'+r.id) ? document.getElementById('pp-'+r.id).value : '';
+    var parcela = document.getElementById('ppa-'+r.id) ? document.getElementById('ppa-'+r.id).value : '';
+    var retorno = document.getElementById('prt-'+r.id) ? document.getElementById('prt-'+r.id).value : '';
+    var troca = document.getElementById('ptr-'+r.id) ? document.getElementById('ptr-'+r.id).value : '';
+    var placa = document.getElementById('ppl-'+r.id) ? document.getElementById('ppl-'+r.id).value : '';
+    if (bank) det += ' - ' + bank;
+    if (prazo) det += ' ' + prazo + 'x';
+    if (parcela) det += ' de R$' + parcela;
+    if (retorno) det += ' (retorno: R$' + retorno + ')';
+    if (troca) det += ': ' + troca;
+    if (placa) det += ' ' + placa;
+    return det + ': ' + fmt(r.value);
+  }).join(' | ');
+
+  var primaryMethod = rows[0] ? rows[0].method : 'Diversos';
+  var transfEl = document.querySelector('input[name="sale-transf"]:checked');
+  var transf = transfEl ? transfEl.value : 'Cliente';
+  var obj = {
+    vehicleId: vId, clientId: cId, seller: gv('ssel'),
+    saleDate: gv('sdate'), saleValue: total,
+    payMethod: primaryMethod, payDetails: payDetails,
+    bankName: '', commission: calcComm(total),
+    transferType: transf, desp: 'Aguardando', status: 'Em andamento'
+  };
+
   if (supaConfigured()) {
-    var dbObj = { vehicle_id:vId, client_id:cId, seller:obj.seller, sale_date:obj.saleDate, sale_value:obj.saleValue, pay_method:obj.payMethod, bank_name:obj.bankName, commission:obj.commission, transfer_type:obj.transferType, despachante:obj.desp, status:obj.status };
+    var dbObj = {
+      vehicle_id: vId, client_id: cId, seller: obj.seller,
+      sale_date: obj.saleDate, sale_value: obj.saleValue,
+      pay_method: obj.payMethod, commission: obj.commission,
+      transfer_type: obj.transferType, despachante: obj.desp, status: obj.status
+    };
     supaInsert('sales', dbObj).then(function(r) {
       var saved = Array.isArray(r) ? r[0] : r;
-      obj.id = saved.id; DB.sales.push(obj);
-      supaUpdate('vehicles', vId, { status:'Vendido' });
-      DB.vehicles = DB.vehicles.map(function(v) { return v.id===vId ? Object.assign({},v,{status:'Vendido'}) : v; });
+      if (saved && saved.id) obj.id = saved.id;
+      DB.sales.push(obj);
+      supaUpdate('vehicles', vId, { status: 'Vendido' });
+      DB.vehicles = DB.vehicles.map(function(v){ return v.id==vId ? Object.assign({},v,{status:'Vendido'}) : v; });
       closeModal(); rSales();
     });
   } else {
-    obj.id = nextId(DB.sales); DB.sales.push(obj);
-    DB.vehicles = DB.vehicles.map(function(v) { return v.id===vId ? Object.assign({},v,{status:'Vendido'}) : v; });
+    obj.id = nextId(DB.sales);
+    DB.sales.push(obj);
+    DB.vehicles = DB.vehicles.map(function(v){ return v.id==vId ? Object.assign({},v,{status:'Vendido'}) : v; });
     closeModal(); rSales();
   }
 }
+
 
 // ========== FINANCIAL ==========
 var finTab = 'saidas';
@@ -1450,11 +1651,11 @@ function rReports() {
     h += '<div class="scard"><div class="sicon" style="background:#f59e0b20"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="'+ICONS.sales+'"/></svg></div><div><div class="sval">'+fmt(totalComm2)+'</div><div class="slbl">Comissoes</div></div></div>';
     h += '</div>';
     h += '<div id="rpt-content" class="tw">';
-    h += mkTable(['Data','Veiculo','Placa','Cliente','Vendedor','Pagamento','Valor','Comissao','Transferencia','Status'],
+    h += mkTable(['Data','Veiculo','Cliente','Vendedor','Pagamento','Valor','Comissao','Status'],
       sales2.map(function(s){
         var veh=DB.vehicles.find(function(v){return v.id===s.vehicleId;});
         var cli=DB.clients.find(function(c){return c.id===s.clientId;});
-        return {cells:[s.saleDate,veh?veh.brand+' '+veh.model:'-',veh?veh.plate:'-',cli?cli.name:'-',s.seller,s.payMethod,'<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>','<span style="color:#22c55e;font-weight:700">'+fmt(s.commission)+'</span>',s.transferType,bk(s.status,s.status==='Concluido'?'bg':'bb')],data:s};
+        return {cells:[s.saleDate,veh?veh.brand+' '+veh.model:'-',veh?veh.plate:'-',cli?cli.name:'-',s.seller,s.payMethod,'<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>','<span style="color:#22c55e;font-weight:700">'+fmt(s.commission)+'</span>',bk(s.status,s.status==='Concluido'?'bg':'bb')],data:s};
       })
     );
     h += '</div>';
