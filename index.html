@@ -618,7 +618,9 @@ function doLogin() {
       btn.textContent = 'Entrar';
       btn.disabled = false;
       if (result && result.length > 0) {
-        enterApp(result[0].username, result[0].role);
+        var rawRole = (result[0].role || '').toLowerCase();
+        var normRole = rawRole === 'gestora' ? 'gestor' : rawRole;
+        enterApp(result[0].username, normRole);
       } else {
         alert('Senha incorreta.');
       }
@@ -781,8 +783,17 @@ function rDash() {
   var salesRank = Object.keys(salesMap).sort(function(a,b){ return salesMap[b]-salesMap[a]; });
   var consigRank = Object.keys(consigMap).sort(function(a,b){ return consigMap[b]-consigMap[a]; });
 
-  var trophies = ['#127941','#1f5ea8','#9a3412','#374151','#374151'];
   var trophyLabels = ['OURO','PRATA','BRONZE','',''];
+
+  var trophySvg = [
+    '<svg width="28" height="28" viewBox="0 0 24 24" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    '<svg width="28" height="28" viewBox="0 0 24 24" fill="#94a3b8" stroke="#64748b" stroke-width="1.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    '<svg width="28" height="28" viewBox="0 0 24 24" fill="#cd7c2f" stroke="#92400e" stroke-width="1.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>',
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>'
+  ];
+  var trophyColors = ['#d97706','#64748b','#92400e','#94a3b8','#94a3b8'];
+  var trophyLabels2 = ['OURO','PRATA','BRONZE','',''];
 
   function rankBlock(title, rankArr, countMap, unit) {
     var h2 = '<div style="background:white;border-radius:12px;padding:20px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">';
@@ -792,15 +803,15 @@ function rDash() {
     } else {
       rankArr.forEach(function(name, i){
         var isMe = name === CUR.user;
-        var color = trophies[i] || '#374151';
-        var medal = i===0?'OURO':i===1?'PRATA':i===2?'BRONZE':'';
+        var color = trophyColors[i] || '#94a3b8';
+        var lbl = trophyLabels2[i] || '';
         h2 += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:'+(isMe?'#f0fdf4':'#f8fafc')+';border:1.5px solid '+(isMe?'#86efac':'#e5e7eb')+'">';
         h2 += '<div style="display:flex;align-items:center;gap:10px">';
-        h2 += '<div style="width:36px;height:36px;border-radius:50%;background:'+color+'20;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:'+color+'">'+(i+1)+'</div>';
+        h2 += (trophySvg[i] || trophySvg[4]);
         h2 += '<div><div style="font-size:14px;font-weight:'+(isMe?'800':'700')+';color:'+(isMe?'#15803d':'#1e293b')+'">'+name+(isMe?' (voce)':'')+'</div>';
-        if (medal) h2 += '<div style="font-size:10px;font-weight:800;color:'+color+'">'+medal+'</div>';
+        if (lbl) h2 += '<div style="font-size:10px;font-weight:800;color:'+color+'">'+lbl+'</div>';
         h2 += '</div></div>';
-        h2 += '<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+color+'">'+countMap[name]+'</div><div style="font-size:11px;color:#94a3b8">'+unit+'</div></div>';
+        h2 += '<div style="text-align:right"><div style="font-size:22px;font-weight:900;color:'+color+'">'+countMap[name]+'</div><div style="font-size:11px;color:#94a3b8">'+unit+'</div></div>';
         h2 += '</div>';
       });
     }
@@ -821,7 +832,7 @@ function rDash() {
 
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">';
     h += rankBlock('Ranking de Vendas', salesRank, salesMap, 'vendas');
-    h += rankBlock('Ranking de Consignacao', consigRank, consigMap, 'consignados');
+    h += rankBlock('Ranking de Consigna&#231;&#227;o', consigRank, consigMap, 'consignados');
     h += '</div>';
 
     // Estoque status
@@ -870,7 +881,7 @@ function rDash() {
     // Rankings
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">';
     h += rankBlock('Ranking de Vendas', salesRank, salesMap, 'vendas');
-    h += rankBlock('Ranking de Consignacao', consigRank, consigMap, 'consignados');
+    h += rankBlock('Ranking de Consigna&#231;&#227;o', consigRank, consigMap, 'consignados');
     h += '</div>';
   }
 
@@ -1172,15 +1183,36 @@ function saveLead() {
 // ========== SALES ==========
 function rSales() {
   var h = '<div class="ph"><div><h2 class="ptitle">Vendas</h2><p class="psub">Registro de vendas</p></div>';
-  h += '<button class="btn btnp" onclick="openSaleModal()">+ Registrar Venda</button></div>';
-  h += '<div class="tw">';
-  var dm = { 'Concluido':'bg','Em andamento':'bb','Aguardando':'by','ATPV Enviado':'bpu' };
-  h += mkTable(['Data','Veiculo','Cliente','Vendedor','Valor','Pagamento','Comissao','Desp.','Status'], DB.sales.map(function(s) {
-    var veh = DB.vehicles.find(function(v) { return v.id === s.vehicleId; });
-    var cli = DB.clients.find(function(c) { return c.id === s.clientId; });
-    return { cells: [s.saleDate, veh?veh.brand+' '+veh.model+' - '+veh.plate:'-', cli?cli.name:'-', s.seller, '<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>', s.payMethod, '<span style="color:#22c55e;font-weight:700">'+fmt(s.commission)+'</span>', bk(s.desp,dm[s.desp]||'bgr'), bk(s.status,s.status==='Concluido'?'bg':'bb')], data: s };
-  }));
+  if (isG() || CUR.role==='vendedor' || CUR.role==='consignadora') {
+    h += '<button class="btn btnp" onclick="openSaleModal()">+ Registrar Venda</button>';
+  }
   h += '</div>';
+
+  var list = isG() ? DB.sales : DB.sales.filter(function(s){ return s.seller===CUR.user; });
+
+  h += mkTable(
+    ['Data','Veiculo','Cliente','Vendedor','Pagamento','Valor','Status',''],
+    list.map(function(s) {
+      var veh = DB.vehicles.find(function(v){ return String(v.id)===String(s.vehicleId); });
+      var cli = DB.clients.find(function(c){ return String(c.id)===String(s.clientId); });
+      var payStr = s.payDetails ? s.payDetails.split('|').map(function(p){ return p.split(':')[0].trim(); }).join(' + ') : (s.payMethod||'-');
+      var statusVal = s.saleStatus || 'Pre-venda';
+      return {
+        cells: [
+          s.saleDate,
+          veh ? (veh.brand+' '+veh.model+' - '+veh.plate) : '-',
+          cli ? cli.name : '-',
+          s.seller || '-',
+          '<span style="font-size:12px;color:#374151">'+payStr+'</span>',
+          '<span style="color:#22c55e;font-weight:700">'+fmt(s.saleValue)+'</span>',
+          bk(statusVal, statusVal==='Vendido'?'bg':'by'),
+          isG() ? '<button class="btn btns" style="font-size:11px;padding:4px 8px" data-sid="'+s.id+'" onclick="toggleSaleStatus(this.getAttribute(\'data-sid\'))">Alterar</button>' : ''
+        ],
+        data: s
+      };
+    })
+  );
+
   document.getElementById('p-sales').innerHTML = h;
 }
 
@@ -1709,7 +1741,6 @@ function savePay() {
 // ========== DESPACHANTE ==========
 var despTab2 = 'pendente';
 function rDesp() {
-  if (!isG()) { document.getElementById('p-despachante').innerHTML = '<div class="lockscr"><p>Acesso restrito ao gestor.</p></div>'; return; }
   var pend = DB.sales.filter(function(s) { return s.desp !== 'Concluido'; });
   var done = DB.sales.filter(function(s) { return s.desp === 'Concluido'; });
   var h = '<div class="ph"><div><h2 class="ptitle">Despachante</h2><p class="psub">Controle de transferencias</p></div><button class="btn btnp" onclick="openDespModal()">+ Nova Transferencia</button></div>';
