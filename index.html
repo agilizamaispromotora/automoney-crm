@@ -1790,12 +1790,53 @@ function rEmployees() {
     var totF = logs.reduce(function(a, l) { return a + l.value; }, 0);
     h += '<div class="infobox" style="display:flex;justify-content:space-between;margin-bottom:16px"><span>' + logs.length + ' lancamentos' + (selEmp?' - '+selEmp:'') + '</span><strong style="color:#15803d">Total: ' + fmt(totF) + '</strong></div>';
     var tc = { 'Salario':'bb','Aj.Custo':'bgr','Comissao':'bg','Retirada':'by','Vale':'bo','Outros':'bgr' };
-    h += '<div class="tw">';
-    h += mkTable(['Data','Funcionario','Descricao','Tipo','Valor'], logs.map(function(l) {
-      var p = l.date.split('-');
-      return { cells: [p[2]+'/'+p[1]+'/'+p[0], '<strong>'+l.emp+'</strong>', l.desc, bk(l.type,tc[l.type]||'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>'], data: l };
-    }));
+    var pending = logs.filter(function(l){ return l.status==='Pendente'||(l.desc&&l.desc.indexOf('PENDENTE')>-1); });
+    var paid = logs.filter(function(l){ return l.status!=='Pendente'&&(!l.desc||l.desc.indexOf('PENDENTE')===-1); });
+    var totalPend = pending.reduce(function(a,l){ return a+l.value; },0);
+    var totalPaid = paid.reduce(function(a,l){ return a+l.value; },0);
+
+    // Summary cards
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">';
+    h += '<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:14px">';
+    h += '<div style="font-size:11px;color:#92400e;font-weight:700;margin-bottom:4px">PENDENTE A PAGAR</div>';
+    h += '<div style="font-size:22px;font-weight:900;color:#f59e0b">'+fmt(totalPend)+'</div>';
+    h += '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+pending.length+' lancamentos</div></div>';
+    h += '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px">';
+    h += '<div style="font-size:11px;color:#15803d;font-weight:700;margin-bottom:4px">JA PAGO</div>';
+    h += '<div style="font-size:22px;font-weight:900;color:#22c55e">'+fmt(totalPaid)+'</div>';
+    h += '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+paid.length+' lancamentos</div></div>';
     h += '</div>';
+
+    // Pendente section
+    if (pending.length > 0) {
+      h += '<div style="font-size:14px;font-weight:700;color:#f59e0b;margin-bottom:8px;padding:8px 12px;background:#fff7ed;border-radius:8px;border-left:4px solid #f59e0b">Pendentes a Pagar</div>';
+      h += '<div class="tw" style="margin-bottom:16px">';
+      h += mkTable(['Data','Descricao','Tipo','Valor',''],
+        pending.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).map(function(l){
+          var p = l.date.split('-');
+          var payBtn = isG() ? '<button class="btn btnp" style="font-size:11px;padding:4px 10px;background:#22c55e" data-lid="'+l.id+'" onclick="baixarComissao(this.getAttribute(\'data-lid\'))">Pagar</button>' : bk('Pendente','by');
+          return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type,tc[l.type]||'bgr'), '<span style="color:#f59e0b;font-weight:700">'+fmt(l.value)+'</span>', payBtn], data: l };
+        })
+      );
+      h += '</div>';
+    }
+
+    // Pago section
+    if (paid.length > 0) {
+      h += '<div style="font-size:14px;font-weight:700;color:#22c55e;margin-bottom:8px;padding:8px 12px;background:#f0fdf4;border-radius:8px;border-left:4px solid #22c55e">Ja Pago</div>';
+      h += '<div class="tw">';
+      h += mkTable(['Data','Descricao','Tipo','Valor'],
+        paid.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).map(function(l){
+          var p = l.date.split('-');
+          return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type,tc[l.type]||'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>'], data: l };
+        })
+      );
+      h += '</div>';
+    }
+
+    if (logs.length === 0) {
+      h += '<div style="text-align:center;padding:40px;color:#94a3b8">Nenhum lancamento registrado</div>';
+    }
   }
   document.getElementById('p-employees').innerHTML = h;
 }
