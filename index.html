@@ -1814,7 +1814,9 @@ function rEmployees() {
       h += mkTable(['Data','Descricao','Tipo','Valor',''],
         pending.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).map(function(l){
           var p = l.date.split('-');
-          var payBtn = isG() ? '<button class="btn btnp" style="font-size:11px;padding:4px 10px;background:#22c55e" data-lid="'+l.id+'" onclick="baixarComissao(this.getAttribute(\'data-lid\'))">Pagar</button>' : bk('Pendente','by');
+          var payBtn = isG()
+            ? '<div style="display:flex;gap:4px"><button class="btn btnp" style="font-size:11px;padding:4px 8px;background:#22c55e" data-lid="'+l.id+'" onclick="baixarComissao(this.getAttribute(\'data-lid\'))">Pagar</button><button class="btn btns" style="font-size:11px;padding:4px 8px" data-lid="'+l.id+'" onclick="openEditLog(this.getAttribute(\'data-lid\'))">Editar</button></div>'
+            : bk('Pendente','by');
           return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type,tc[l.type]||'bgr'), '<span style="color:#f59e0b;font-weight:700">'+fmt(l.value)+'</span>', payBtn], data: l };
         })
       );
@@ -1825,10 +1827,11 @@ function rEmployees() {
     if (paid.length > 0) {
       h += '<div style="font-size:14px;font-weight:700;color:#22c55e;margin-bottom:8px;padding:8px 12px;background:#f0fdf4;border-radius:8px;border-left:4px solid #22c55e">Ja Pago</div>';
       h += '<div class="tw">';
-      h += mkTable(['Data','Descricao','Tipo','Valor'],
+      h += mkTable(['Data','Descricao','Tipo','Valor',''],
         paid.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).map(function(l){
           var p = l.date.split('-');
-          return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type,tc[l.type]||'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>'], data: l };
+          var editBtn = isG() ? '<button class="btn btns" style="font-size:11px;padding:4px 8px" data-lid="'+l.id+'" onclick="openEditLog(this.getAttribute(\'data-lid\'))">Editar</button>' : '';
+          return { cells: [p[2]+'/'+p[1]+'/'+p[0], l.desc, bk(l.type,tc[l.type]||'bgr'), '<span style="color:#22c55e;font-weight:700">'+fmt(l.value)+'</span>', editBtn], data: l };
         })
       );
       h += '</div>';
@@ -1840,6 +1843,50 @@ function rEmployees() {
   }
   document.getElementById('p-employees').innerHTML = h;
 }
+
+function openEditLog(logId) {
+  var log = DB.payLogs.find(function(l){ return String(l.id)===String(logId); });
+  if (!log) return;
+
+  var types = ['Salario','Aj.Custo','Comissao','Retirada','Vale','Outros'];
+  var typeOpts = types.map(function(t){ return '<option value="'+t+'"'+(log.type===t?' selected':'')+'>'+t+'</option>'; }).join('');
+
+  var h = mHead('Editar Lancamento') + '<div class="modal-body"><div class="fgrid">';
+  h += finp('el-date','Data',log.date,'','date');
+  h += finp('el-desc','Descricao',log.desc,'');
+  h += '<div class="fg"><label>Tipo</label><select id="el-type">'+typeOpts+'</select></div>';
+  h += finp('el-val','Valor R$',log.value,'');
+  h += '</div>';
+  h += '<div class="modal-foot">';
+  h += '<button class="btn btns" onclick="closeModal()">Cancelar</button>';
+  h += '<button class="btn btnp" data-lid="'+logId+'" onclick="saveEditLog(this.getAttribute(\'data-lid\'))">Salvar</button>';
+  h += '</div></div>';
+  openModal(h, 'modal-md');
+}
+
+function saveEditLog(logId) {
+  function toN(s){ var n=parseFloat(String(s||0).replace(',','.')); return isNaN(n)?0:n; }
+  var upd = {
+    date: gv('el-date'),
+    desc: gv('el-desc'),
+    type: gv('el-type'),
+    value: toN(gv('el-val'))
+  };
+  DB.payLogs = DB.payLogs.map(function(l){
+    return String(l.id)===String(logId) ? Object.assign({},l,upd) : l;
+  });
+  if (supaConfigured()) {
+    supaUpdate('payment_logs', logId, {
+      date: upd.date,
+      description: upd.desc,
+      type: upd.type,
+      value: upd.value
+    });
+  }
+  closeModal();
+  rEmployees();
+}
+
 function openPayModal() {
   var eOpts = DB.employees.map(function(e) { return '<option value="'+e.name+'"'+(selEmp===e.name?' selected':'')+'>'+e.name+'</option>'; }).join('');
   var h = mHead('Lancar Pagamento') + '<div class="modal-body"><div class="fgrid">';
